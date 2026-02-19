@@ -1,0 +1,100 @@
+export interface StockItem {
+  id: string;
+  number: number;
+  description: string;
+  quantity: number;
+  reference: string | null;
+  price_ht: number | null;
+  reserved: number;
+  remaining: number;
+  paid_amount: number;
+  notes: string | null;
+  image_url: string | null;
+  client_id?: string | null;
+  brand_id?: string | null;
+  origin_id?: string | null;
+  fournisseur_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  custom_field_values?: CustomFieldValue[];
+  product_images?: ProductImage[];
+  client?: Client | null;
+  brand?: Brand | null;
+  origin?: Origin | null;
+  fournisseur?: Fournisseur | null;
+}
+
+export interface CustomField {
+  id: string;
+  name: string;
+  field_type: string;
+  is_active: boolean;
+  display_order?: number;
+  created_at?: string;
+}
+
+export interface CustomFieldValue {
+  id: string;
+  stock_item_id?: string;
+  custom_field_id: string;
+  value: string | null;
+  created_at?: string;
+  custom_fields?: Partial<CustomField>;
+}
+
+export interface StockStats {
+  totalItems: number;
+  totalQuantity: number;
+  totalReserved: number;
+  totalRemaining: number;
+  outOfStock: number;
+  lowStock: number;
+  totalValue: number;
+  categoryBreakdown: { category: string; count: number }[];
+  stockByStatus: { status: string; count: number; color: string }[];
+}
+
+export interface ProductImage {
+  id: string;
+  stock_item_id: string;
+  image_url: string;
+  sort_order?: number;
+  created_at?: string;
+}
+
+export interface Client {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone?: string | null;
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Brand {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Origin {
+  id: string;
+  name: string;
+  logo_url: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Fournisseur {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
