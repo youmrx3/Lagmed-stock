@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Client } from "@/types/stock";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,44 +48,44 @@ export function ClientManager({ clients, onAdd, onUpdate, onDelete }: ClientMana
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-lg">Clients</CardTitle>
-          <Button size="sm" onClick={openAdd}>
-            <Plus className="h-4 w-4 mr-1" />
+      <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="p-4 sm:p-5 border-b bg-muted/30 flex items-center justify-between">
+          <h3 className="font-semibold text-sm">Clients</h3>
+          <Button size="sm" className="rounded-lg h-8 text-xs" onClick={openAdd}>
+            <Plus className="h-3.5 w-3.5 mr-1" />
             Ajouter
           </Button>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-4 sm:p-5">
           {clients.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">Aucun client pour le moment.</p>
           ) : (
             <div className="space-y-2">
               {clients.map((client) => (
-                <div key={client.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                <div key={client.id} className="flex items-center justify-between gap-3 rounded-xl border p-3 hover:bg-muted/30 hover:shadow-sm transition-all">
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{client.name || "Sans nom"}</p>
-                    <p className="text-sm text-muted-foreground truncate">{client.email || "Sans email"}</p>
+                    <p className="font-medium text-sm truncate">{client.name || "Sans nom"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{client.email || "Sans email"}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(client)}>
-                      <Edit2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(client)}>
+                      <Edit2 className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
                       onClick={() => onDelete(client.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[460px]">
@@ -116,10 +115,10 @@ export function ClientManager({ clients, onAdd, onUpdate, onDelete }: ClientMana
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => setOpen(false)}>
                 Annuler
               </Button>
-              <Button type="submit">Enregistrer</Button>
+              <Button type="submit" size="sm" className="rounded-lg">Enregistrer</Button>
             </DialogFooter>
           </form>
         </DialogContent>

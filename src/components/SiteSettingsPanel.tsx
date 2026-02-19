@@ -3,7 +3,6 @@ import { SiteSettings } from "@/hooks/useSiteSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { uploadProductImage } from "@/lib/storage";
 import { ImagePlus, Loader2, X, Building2, Globe } from "lucide-react";
 import { toast } from "sonner";
@@ -68,15 +67,15 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
   return (
     <div className="space-y-6">
       {/* Company branding */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Identité de l'entreprise
-          </CardTitle>
-          <CardDescription>Logo et nom affichés dans l'en-tête</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="p-4 sm:p-5 border-b bg-muted/30 flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <h3 className="font-semibold text-sm">Identité de l'entreprise</h3>
+            <p className="text-xs text-muted-foreground">Logo et nom affichés dans l'en-tête</p>
+          </div>
+        </div>
+        <div className="p-4 sm:p-5 space-y-4">
           {/* Logo */}
           <div className="space-y-2">
             <Label>Logo</Label>
@@ -124,62 +123,62 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
           </div>
 
           {/* Company name */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Nom de l'entreprise</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nom de l'entreprise</Label>
               <Input
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Sous-titre</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Sous-titre</Label>
               <Input
                 value={companySubtitle}
                 onChange={(e) => setCompanySubtitle(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Adresse</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Adresse</Label>
               <Input
                 value={companyAddress}
                 onChange={(e) => setCompanyAddress(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Email</Label>
               <Input
                 value={companyEmail}
                 onChange={(e) => setCompanyEmail(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Téléphone</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Téléphone</Label>
               <Input
                 value={companyPhone}
                 onChange={(e) => setCompanyPhone(e.target.value)}
               />
             </div>
           </div>
-          <Button onClick={handleSaveCompany} size="sm">
+          <Button onClick={handleSaveCompany} size="sm" className="rounded-lg">
             Enregistrer
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Product settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Paramètres du stock
-          </CardTitle>
-          <CardDescription>Configuration globale des produits</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Seuil de stock bas</Label>
+      <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="p-4 sm:p-5 border-b bg-muted/30 flex items-center gap-2">
+          <Globe className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <h3 className="font-semibold text-sm">Paramètres du stock</h3>
+            <p className="text-xs text-muted-foreground">Configuration globale des produits</p>
+          </div>
+        </div>
+        <div className="p-4 sm:p-5 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Seuil de stock bas</Label>
               <Input
                 type="number"
                 value={lowStockThreshold}
@@ -191,11 +190,11 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
               </p>
             </div>
           </div>
-          <Button onClick={handleSaveThreshold} size="sm">
+          <Button onClick={handleSaveThreshold} size="sm" className="rounded-lg">
             Enregistrer
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

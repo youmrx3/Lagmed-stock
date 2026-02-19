@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { Brand, Origin } from "@/types/stock";
 import { uploadBrandOriginLogo } from "@/lib/storage";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,21 +74,21 @@ function EntityManager({ title, icon, items, onAdd, onUpdate, onDelete }: Entity
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle className="text-lg">{title}</CardTitle>
-          <Button size="sm" onClick={openAdd}>
-            <Plus className="h-4 w-4 mr-1" />
+      <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="p-4 sm:p-5 border-b bg-muted/30 flex items-center justify-between">
+          <h3 className="font-semibold text-sm">{title}</h3>
+          <Button size="sm" className="rounded-lg h-8 text-xs" onClick={openAdd}>
+            <Plus className="h-3.5 w-3.5 mr-1" />
             Ajouter
           </Button>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-4 sm:p-5">
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-6">Aucun élément.</p>
           ) : (
             <div className="space-y-2">
               {items.map((entity) => (
-                <div key={entity.id} className="flex items-center justify-between rounded-lg border p-3">
+                <div key={entity.id} className="flex items-center justify-between rounded-xl border p-3 hover:bg-muted/30 hover:shadow-sm transition-all">
                   <div className="flex items-center gap-3 min-w-0">
                     {entity.logo_url ? (
                       <img src={entity.logo_url} alt={entity.name} className="h-9 w-9 rounded-md border object-contain" />
@@ -101,24 +100,24 @@ function EntityManager({ title, icon, items, onAdd, onUpdate, onDelete }: Entity
                     <p className="font-medium truncate">{entity.name}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(entity)}>
-                      <Edit2 className="h-4 w-4" />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(entity)}>
+                      <Edit2 className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="h-7 w-7 text-destructive hover:text-destructive"
                       onClick={() => onDelete(entity.id)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[420px]">
@@ -159,10 +158,10 @@ function EntityManager({ title, icon, items, onAdd, onUpdate, onDelete }: Entity
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" size="sm" className="rounded-lg" onClick={() => setOpen(false)}>
                 Annuler
               </Button>
-              <Button type="submit">Enregistrer</Button>
+              <Button type="submit" size="sm" className="rounded-lg">Enregistrer</Button>
             </DialogFooter>
           </form>
         </DialogContent>
