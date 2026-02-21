@@ -14,6 +14,7 @@ export interface StockItem {
   brand_id?: string | null;
   origin_id?: string | null;
   fournisseur_id?: string | null;
+  category_id?: string | null;
   created_at?: string;
   updated_at?: string;
   custom_field_values?: CustomFieldValue[];
@@ -22,6 +23,7 @@ export interface StockItem {
   brand?: Brand | null;
   origin?: Origin | null;
   fournisseur?: Fournisseur | null;
+  category?: Category | null;
 }
 
 export interface CustomField {
@@ -95,6 +97,14 @@ export interface Fournisseur {
   phone: string | null;
   address: string | null;
   notes: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  image_url: string | null;
   created_at?: string;
   updated_at?: string;
 }

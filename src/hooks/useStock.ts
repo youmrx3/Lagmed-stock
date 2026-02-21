@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { StockItem, CustomField, StockStats, Client, Brand, Origin, Fournisseur } from "@/types/stock";
+import { StockItem, CustomField, StockStats, Client, Brand, Origin, Fournisseur, Category } from "@/types/stock";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -11,6 +11,7 @@ export function useStock() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [origins, setOrigins] = useState<Origin[]>([]);
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "in-stock" | "low-stock" | "out-of-stock">("all");
@@ -81,6 +82,11 @@ export function useStock() {
             phone,
             address,
             notes
+          ),
+          category:categories (
+            id,
+            name,
+            image_url
           )
         `)
         .order("number", { ascending: true });
@@ -118,6 +124,7 @@ export function useStock() {
           brand: null,
           origin: null,
           fournisseur: null,
+          category: null,
           product_images: item.image_url ? [{ id: `legacy-${item.id}`, stock_item_id: item.id, image_url: item.image_url }] : [],
         }));
 
@@ -242,6 +249,26 @@ export function useStock() {
     }
   }, []);
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) {
+        if (isMissingRelationError(error)) {
+          setCategories([]);
+          return;
+        }
+        throw error;
+      }
+      setCategories((data as Category[]) || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -249,7 +276,7 @@ export function useStock() {
       setLoading(false);
     };
     loadData();
-  }, [fetchItems, fetchCustomFields, fetchClients, fetchBrands, fetchOrigins, fetchFournisseurs]);
+  }, [fetchItems, fetchCustomFields, fetchClients, fetchBrands, fetchOrigins, fetchFournisseurs, fetchCategories]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -260,6 +287,7 @@ export function useStock() {
         (item.fournisseur?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.brand?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.origin?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.category?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.number.toString().includes(searchTerm);
 
       let matchesFilter = true;
@@ -288,6 +316,7 @@ export function useStock() {
         brand_id: item.brand_id || null,
         origin_id: item.origin_id || null,
         fournisseur_id: item.fournisseur_id || null,
+        category_id: item.category_id || null,
         reserved: item.reserved,
         remaining: item.remaining,
         notes: item.notes || "",
@@ -346,6 +375,7 @@ export function useStock() {
         brand_id: updates.brand_id,
         origin_id: updates.origin_id,
         fournisseur_id: updates.fournisseur_id,
+        category_id: updates.category_id,
         reserved: updates.reserved,
         remaining: updates.remaining,
         notes: updates.notes,
@@ -638,6 +668,58 @@ export function useStock() {
     }
   }, [fetchOrigins, fetchItems]);
 
+  // Category CRUD
+  const addCategory = useCallback(async (cat: Partial<Category>) => {
+    try {
+      if (!cat.name?.trim()) {
+        toast.error("Le nom de la catégorie est requis");
+        return;
+      }
+      const { error } = await supabase.from("categories").insert({
+        name: cat.name.trim(),
+        image_url: cat.image_url || null,
+      });
+      if (error) throw error;
+      await fetchCategories();
+      toast.success("Catégorie ajoutée");
+    } catch (error) {
+      console.error("Error adding category:", error);
+      if (isMissingRelationError(error)) {
+        toast.error("Table categories manquante sur Supabase. Exécutez la migration SQL.");
+        return;
+      }
+      toast.error("Erreur lors de l'ajout de la catégorie");
+    }
+  }, [fetchCategories]);
+
+  const updateCategory = useCallback(async (id: string, updates: Partial<Category>) => {
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .update({ name: updates.name, image_url: updates.image_url ?? null })
+        .eq("id", id);
+      if (error) throw error;
+      await fetchCategories();
+      toast.success("Catégorie mise à jour");
+    } catch (error) {
+      console.error("Error updating category:", error);
+      toast.error("Erreur lors de la mise à jour de la catégorie");
+    }
+  }, [fetchCategories]);
+
+  const deleteCategory = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (error) throw error;
+      await fetchCategories();
+      await fetchItems();
+      toast.success("Catégorie supprimée");
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast.error("Erreur lors de la suppression de la catégorie");
+    }
+  }, [fetchCategories, fetchItems]);
+
   // Fournisseur CRUD
   const addFournisseur = useCallback(async (fournisseur: Partial<Fournisseur>) => {
     try {
@@ -765,28 +847,14 @@ export function useStock() {
     const inStock = items.filter((item) => item.remaining > 5).length;
     const totalValue = items.reduce((sum, item) => sum + (item.price_ht || 0) * item.quantity, 0);
 
-    // Category breakdown based on description keywords
-    const categories: Record<string, number> = {};
+    // Category breakdown based on actual categories
+    const categoryCounts: Record<string, number> = {};
     items.forEach(item => {
-      const desc = item.description.toLowerCase();
-      let category = "Autre";
-      if (desc.includes("incubator") || desc.includes("couveuse") || desc.includes("infant") || desc.includes("néonatal")) {
-        category = "Néonatologie";
-      } else if (desc.includes("aspirateur") || desc.includes("respirateur")) {
-        category = "Respiratoire";
-      } else if (desc.includes("morgue") || desc.includes("autopsy") || desc.includes("body bag")) {
-        category = "Morgue";
-      } else if (desc.includes("boite") || desc.includes("kit")) {
-        category = "Instrumentation";
-      } else if (desc.includes("table") || desc.includes("lit")) {
-        category = "Mobilier";
-      } else if (desc.includes("monitor") || desc.includes("ecg") || desc.includes("défibrillateur")) {
-        category = "Monitoring";
-      }
-      categories[category] = (categories[category] || 0) + 1;
+      const category = item.category?.name || "Sans catégorie";
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
     });
 
-    const categoryBreakdown = Object.entries(categories)
+    const categoryBreakdown = Object.entries(categoryCounts)
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => b.count - a.count);
 
@@ -818,6 +886,7 @@ export function useStock() {
     brands,
     origins,
     fournisseurs,
+    categories,
     loading,
     searchTerm,
     setSearchTerm,
@@ -840,12 +909,15 @@ export function useStock() {
     addOrigin,
     updateOrigin,
     deleteOrigin,
+    addCategory,
+    updateCategory,
+    deleteCategory,
     addFournisseur,
     updateFournisseur,
     deleteFournisseur,
     stats,
     refetch: async () => {
-      await Promise.all([fetchItems(), fetchCustomFields(), fetchClients(), fetchBrands(), fetchOrigins(), fetchFournisseurs()]);
+      await Promise.all([fetchItems(), fetchCustomFields(), fetchClients(), fetchBrands(), fetchOrigins(), fetchFournisseurs(), fetchCategories()]);
     },
   };
 }

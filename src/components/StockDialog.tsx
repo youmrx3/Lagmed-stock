@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { StockItem, CustomField, Client, Brand, Origin, Fournisseur } from "@/types/stock";
+import { StockItem, CustomField, Client, Brand, Origin, Fournisseur, Category } from "@/types/stock";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,7 @@ interface StockDialogProps {
   brands: Brand[];
   origins: Origin[];
   fournisseurs: Fournisseur[];
+  categories: Category[];
   onSave: (item: Omit<StockItem, "id" | "created_at" | "updated_at">) => Promise<unknown>;
   onUpdate: (id: string, item: Partial<StockItem>) => Promise<void>;
   onUpdateCustomFieldValue: (stockItemId: string, customFieldId: string, value: string) => Promise<void>;
@@ -47,6 +48,7 @@ export function StockDialog({
   brands,
   origins,
   fournisseurs,
+  categories,
   onSave,
   onUpdate,
   onUpdateCustomFieldValue,
@@ -72,6 +74,7 @@ export function StockDialog({
     brand_id: "",
     origin_id: "",
     fournisseur_id: "",
+    category_id: "",
   });
 
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
@@ -92,6 +95,7 @@ export function StockDialog({
         brand_id: item.brand_id || "",
         origin_id: item.origin_id || "",
         fournisseur_id: item.fournisseur_id || "",
+        category_id: item.category_id || "",
       });
 
       const mappedImages = (item.product_images || []).map((image) => image.image_url);
@@ -118,6 +122,7 @@ export function StockDialog({
         brand_id: "",
         origin_id: "",
         fournisseur_id: "",
+        category_id: "",
       });
       setCustomFieldValues({});
       setImages([]);
@@ -175,6 +180,7 @@ export function StockDialog({
       brand_id: formData.brand_id || null,
       origin_id: formData.origin_id || null,
       fournisseur_id: formData.fournisseur_id || null,
+      category_id: formData.category_id || null,
     };
 
     try {
@@ -416,6 +422,23 @@ export function StockDialog({
                 {fournisseurs.map((f) => (
                   <SelectItem key={f.id} value={f.id}>
                     {f.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Catégorie</Label>
+            <Select value={formData.category_id || "none"} onValueChange={(value) => setFormData((prev) => ({ ...prev, category_id: value === "none" ? "" : value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Aucune catégorie" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Aucune</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -11,6 +11,7 @@ import { StatisticsPanel } from "@/components/StatisticsPanel";
 import { CustomFieldsManager } from "@/components/CustomFieldsManager";
 import { SiteSettingsPanel } from "@/components/SiteSettingsPanel";
 import { BrandOriginManager } from "@/components/BrandOriginManager";
+import { CategoryManager } from "@/components/CategoryManager";
 import { ClientSection } from "@/components/ClientSection";
 import { FournisseurSection } from "@/components/FournisseurSection";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ const Index = () => {
     brands,
     origins,
     fournisseurs,
+    categories,
     loading,
     searchTerm,
     setSearchTerm,
@@ -76,6 +78,9 @@ const Index = () => {
     addOrigin,
     updateOrigin,
     deleteOrigin,
+    addCategory,
+    updateCategory,
+    deleteCategory,
     addFournisseur,
     updateFournisseur,
     deleteFournisseur,
@@ -96,6 +101,7 @@ const Index = () => {
   const [filterBrandId, setFilterBrandId] = useState("all");
   const [filterOriginId, setFilterOriginId] = useState("all");
   const [filterFournisseurId, setFilterFournisseurId] = useState("all");
+  const [filterCategoryId, setFilterCategoryId] = useState("all");
   const [filterPriceMin, setFilterPriceMin] = useState("");
   const [filterPriceMax, setFilterPriceMax] = useState("");
 
@@ -105,6 +111,7 @@ const Index = () => {
       if (filterBrandId !== "all" && item.brand_id !== filterBrandId) return false;
       if (filterOriginId !== "all" && item.origin_id !== filterOriginId) return false;
       if (filterFournisseurId !== "all" && item.fournisseur_id !== filterFournisseurId) return false;
+      if (filterCategoryId !== "all" && item.category_id !== filterCategoryId) return false;
       if (filterPriceMin) {
         const minPrice = parseFloat(filterPriceMin);
         if (!isNaN(minPrice) && (item.price_ht || 0) < minPrice) return false;
@@ -115,7 +122,7 @@ const Index = () => {
       }
       return true;
     });
-  }, [items, filterBrandId, filterOriginId, filterFournisseurId, filterPriceMin, filterPriceMax]);
+  }, [items, filterBrandId, filterOriginId, filterFournisseurId, filterCategoryId, filterPriceMin, filterPriceMax]);
 
   // Lucide Truck imported from lucide-react
 
@@ -320,12 +327,15 @@ const Index = () => {
               brands={brands}
               origins={origins}
               fournisseurs={fournisseurs}
+              categories={categories}
               filterBrandId={filterBrandId}
               onFilterBrandChange={setFilterBrandId}
               filterOriginId={filterOriginId}
               onFilterOriginChange={setFilterOriginId}
               filterFournisseurId={filterFournisseurId}
               onFilterFournisseurChange={setFilterFournisseurId}
+              filterCategoryId={filterCategoryId}
+              onFilterCategoryChange={setFilterCategoryId}
               filterPriceMin={filterPriceMin}
               onFilterPriceMinChange={setFilterPriceMin}
               filterPriceMax={filterPriceMax}
@@ -400,6 +410,12 @@ const Index = () => {
               onUpdateOrigin={updateOrigin}
               onDeleteOrigin={deleteOrigin}
             />
+            <CategoryManager
+              categories={categories}
+              onAdd={addCategory}
+              onUpdate={updateCategory}
+              onDelete={deleteCategory}
+            />
           </TabsContent>
         </Tabs>
       </main>
@@ -414,6 +430,7 @@ const Index = () => {
         brands={brands}
         origins={origins}
         fournisseurs={fournisseurs}
+        categories={categories}
         onSave={addItem}
         onUpdate={updateItem}
         onUpdateCustomFieldValue={updateCustomFieldValue}

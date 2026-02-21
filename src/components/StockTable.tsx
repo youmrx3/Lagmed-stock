@@ -60,6 +60,7 @@ export function StockTable({ items, customFields, onEdit, onDelete, onViewDetail
               <TableHead className="text-right font-semibold text-xs uppercase tracking-wider text-muted-foreground">Reste</TableHead>
               <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Client</TableHead>
               <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Fourn.</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">Catégorie</TableHead>
               {activeCustomFields.map(field => (
                 <TableHead key={field.id} className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
                   {field.name}
@@ -124,6 +125,18 @@ export function StockTable({ items, customFields, onEdit, onDelete, onViewDetail
                   <TableCell className="text-right text-sm tabular-nums text-warning">{formatPrice(due)}</TableCell>
                   <TableCell className="text-sm">{item.client?.name || item.client?.email || <span className="text-muted-foreground/50">—</span>}</TableCell>
                   <TableCell className="text-sm">{item.fournisseur?.name || <span className="text-muted-foreground/50">—</span>}</TableCell>
+                  <TableCell className="text-sm">
+                    {item.category ? (
+                      <div className="flex items-center gap-1.5">
+                        {item.category.image_url && (
+                          <img src={item.category.image_url} alt={item.category.name} className="h-5 w-5 rounded object-cover" />
+                        )}
+                        <span>{item.category.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground/50">—</span>
+                    )}
+                  </TableCell>
                   {activeCustomFields.map(field => (
                     <TableCell key={field.id} className="text-sm">
                       {getCustomFieldValue(item, field.id)}
@@ -160,7 +173,7 @@ export function StockTable({ items, customFields, onEdit, onDelete, onViewDetail
             })}
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={14 + activeCustomFields.length} className="text-center py-16">
+                <TableCell colSpan={15 + activeCustomFields.length} className="text-center py-16">
                   <div className="flex flex-col items-center gap-3">
                     <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center">
                       <Package className="h-6 w-6 text-muted-foreground/50" />
