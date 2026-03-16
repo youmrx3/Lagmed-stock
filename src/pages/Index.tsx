@@ -15,9 +15,16 @@ import { CategoryManager } from "@/components/CategoryManager";
 import { ClientSection } from "@/components/ClientSection";
 import { FournisseurSection } from "@/components/FournisseurSection";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StockItem } from "@/types/stock";
-import { exportProductsToExcel } from "@/lib/exports";
+import { exportProductsToExcel, exportProductsToExcelDetailed, exportCatalogPdf } from "@/lib/exports";
 import {
   Package,
   PackageCheck,
@@ -33,6 +40,10 @@ import {
   TrendingUp,
   Wallet,
   CircleDollarSign,
+  ChevronDown,
+  FileText,
+  FileJson2,
+  BookOpen,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -209,10 +220,46 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => exportProductsToExcel(allItems, settings.currency)}>
-                <Download className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Export</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 text-xs">
+                    <Download className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Export</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportProductsToExcel(allItems, settings.currency)}>
+                    <FileJson2 className="h-4 w-4 mr-2" />
+                    <span>Excel Basique</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportProductsToExcelDetailed(allItems, settings.currency, {
+                    company_name: settings.company_name,
+                    company_subtitle: settings.company_subtitle,
+                    company_address: settings.company_address,
+                    company_email: settings.company_email,
+                    company_phone: settings.company_phone,
+                    logo_url: settings.logo_url,
+                    currency: settings.currency,
+                  })}>
+                    <FileJson2 className="h-4 w-4 mr-2" />
+                    <span>Excel Détaillé (Avec Images)</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => exportCatalogPdf(allItems, {
+                    company_name: settings.company_name,
+                    company_subtitle: settings.company_subtitle,
+                    company_address: settings.company_address,
+                    company_email: settings.company_email,
+                    company_phone: settings.company_phone,
+                    logo_url: settings.logo_url,
+                    currency: settings.currency,
+                  }, "Catalogue de Produits")}>
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    <span>PDF Catalogue</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={handleAddNew} size="sm" className="gap-2 gradient-primary border-0 text-white shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transition-all">
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Nouveau produit</span>

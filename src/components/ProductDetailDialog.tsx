@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CompanyExportProfile, exportProductToDoc, exportProductToPdf } from "@/lib/exports";
+import { CompanyExportProfile, exportProductToDoc, exportProductToPdf, exportProductToPdfEnhanced } from "@/lib/exports";
 import { Download, FileText as FileTextIcon, Image as ImageIcon, Package, Tag, Hash, Calendar, User, Building2, Globe, Truck, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductDetailDialogProps {
@@ -271,9 +271,12 @@ export function ProductDetailDialog({ open, onOpenChange, item, customFields, co
               placeholder="Ajouter un texte pour le cahier des charges..."
               rows={4}
             />
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => { void exportProductToPdf(item, companyProfile, extraText); }}>
                 <Download className="h-3.5 w-3.5" /> PDF
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => { void exportProductToPdfEnhanced(item, companyProfile, extraText); }}>
+                <Download className="h-3.5 w-3.5" /> PDF Détaillé
               </Button>
               <Button variant="outline" size="sm" className="gap-1.5 rounded-lg text-xs" onClick={() => exportProductToDoc(item, companyProfile, extraText)}>
                 <Download className="h-3.5 w-3.5" /> DOC
