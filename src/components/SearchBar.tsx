@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Brand, Origin, Fournisseur } from "@/types/stock";
+import { Brand, Origin, Fournisseur, Category } from "@/types/stock";
 
 interface SearchBarProps {
   searchTerm: string;
@@ -25,12 +25,15 @@ interface SearchBarProps {
   brands?: Brand[];
   origins?: Origin[];
   fournisseurs?: Fournisseur[];
+  categories?: Category[];
   filterBrandId?: string;
   onFilterBrandChange?: (value: string) => void;
   filterOriginId?: string;
   onFilterOriginChange?: (value: string) => void;
   filterFournisseurId?: string;
   onFilterFournisseurChange?: (value: string) => void;
+  filterCategoryId?: string;
+  onFilterCategoryChange?: (value: string) => void;
   filterPriceMin?: string;
   onFilterPriceMinChange?: (value: string) => void;
   filterPriceMax?: string;
@@ -45,12 +48,15 @@ export function SearchBar({
   brands = [],
   origins = [],
   fournisseurs = [],
+  categories = [],
   filterBrandId = "all",
   onFilterBrandChange,
   filterOriginId = "all",
   onFilterOriginChange,
   filterFournisseurId = "all",
   onFilterFournisseurChange,
+  filterCategoryId = "all",
+  onFilterCategoryChange,
   filterPriceMin = "",
   onFilterPriceMinChange,
   filterPriceMax = "",
@@ -63,13 +69,14 @@ export function SearchBar({
     "out-of-stock": "Rupture",
   };
 
-  const hasAdvancedFilters = filterBrandId !== "all" || filterOriginId !== "all" || filterFournisseurId !== "all" || filterPriceMin || filterPriceMax;
+  const hasAdvancedFilters = filterBrandId !== "all" || filterOriginId !== "all" || filterFournisseurId !== "all" || filterCategoryId !== "all" || filterPriceMin || filterPriceMax;
 
   const clearAllFilters = () => {
     onFilterChange("all");
     onFilterBrandChange?.("all");
     onFilterOriginChange?.("all");
     onFilterFournisseurChange?.("all");
+    onFilterCategoryChange?.("all");
     onFilterPriceMinChange?.("");
     onFilterPriceMaxChange?.("");
     onSearchChange("");
@@ -128,6 +135,19 @@ export function SearchBar({
               <SelectItem value="all">Tous fournisseurs</SelectItem>
               {fournisseurs.map((f) => (
                 <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {categories.length > 0 && onFilterCategoryChange && (
+          <Select value={filterCategoryId} onValueChange={onFilterCategoryChange}>
+            <SelectTrigger className="w-[170px] h-9 text-sm">
+              <SelectValue placeholder="Catégorie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes catégories</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
