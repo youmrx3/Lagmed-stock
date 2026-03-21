@@ -1,12 +1,13 @@
-import { StockStats } from "@/types/stock";
+import { StockItem, StockStats } from "@/types/stock";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 
 interface StatisticsPanelProps {
   stats: StockStats;
+  items: StockItem[];
 }
 
-export function StatisticsPanel({ stats }: StatisticsPanelProps) {
+export function StatisticsPanel({ stats, items }: StatisticsPanelProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("fr-DZ", {
       style: "currency",
@@ -29,7 +30,7 @@ export function StatisticsPanel({ stats }: StatisticsPanelProps) {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="rounded-xl border bg-card p-4 transition-all hover:shadow-md">
           <div className="text-center space-y-1">
             <p className="text-2xl font-bold tracking-tight">{stats.totalItems}</p>
@@ -52,6 +53,12 @@ export function StatisticsPanel({ stats }: StatisticsPanelProps) {
           <div className="text-center space-y-1">
             <p className="text-2xl font-bold tracking-tight text-success">{stats.totalRemaining}</p>
             <p className="text-xs font-medium text-muted-foreground">Disponibles</p>
+          </div>
+        </div>
+        <div className="rounded-xl border bg-card p-4 transition-all hover:shadow-md">
+          <div className="text-center space-y-1">
+            <p className="text-2xl font-bold tracking-tight">{stats.totalSubProducts}</p>
+            <p className="text-xs font-medium text-muted-foreground">Sous-produits</p>
           </div>
         </div>
       </div>
@@ -134,6 +141,45 @@ export function StatisticsPanel({ stats }: StatisticsPanelProps) {
         <div className="text-center">
           <p className="text-sm text-white/80 mb-2">Valeur totale estimée du stock</p>
           <p className="text-4xl font-bold text-white tracking-tight">{formatCurrency(stats.totalValue)}</p>
+        </div>
+      </div>
+
+      {/* Product and Sub-product Details */}
+      <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="p-4 sm:p-5 border-b bg-muted/30 flex items-center justify-between">
+          <h3 className="font-semibold text-sm">Détails Produits et Sous-produits</h3>
+          <p className="text-xs text-muted-foreground">{items.length} produits • {stats.totalSubProducts} sous-produits</p>
+        </div>
+        <div className="p-4 sm:p-5">
+          {items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucun produit disponible</p>
+          ) : (
+            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+              {items.map((item) => (
+                <div key={item.id} className="rounded-lg border p-3 bg-background">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <p className="font-medium text-sm">#{item.number} - {item.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Qté: {item.quantity} • Réservé: {item.reserved} • Reste: {item.remaining}
+                    </p>
+                  </div>
+
+                  {(item.sub_products || []).length > 0 ? (
+                    <div className="space-y-1.5">
+                      {item.sub_products?.map((sp) => (
+                        <div key={sp.id} className="text-xs rounded-md bg-muted/50 px-2 py-1.5 flex items-center justify-between gap-2">
+                          <span>{sp.name}</span>
+                          <span className="text-muted-foreground">Qté: {sp.quantity} • Prix: {formatCurrency(sp.price || 0)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Aucun sous-produit</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

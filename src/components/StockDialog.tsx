@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { StockItem, CustomField, Client, Brand, Origin, Fournisseur } from "@/types/stock";
+import { StockItem, CustomField, Brand, Origin, Fournisseur, Category, SubProduct } from "@/types/stock";
 import {
   Dialog,
   DialogContent,
@@ -19,22 +19,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { SubproductManager } from "@/components/SubproductManager";
+
+interface LocalSubProduct extends SubProduct {
+  id: string;
+}
 
 interface StockDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item?: StockItem | null;
   customFields: CustomField[];
-  clients: Client[];
   brands: Brand[];
   origins: Origin[];
   fournisseurs: Fournisseur[];
+  categories: Category[];
   onSave: (item: Omit<StockItem, "id" | "created_at" | "updated_at">) => Promise<unknown>;
   onUpdate: (id: string, item: Partial<StockItem>) => Promise<void>;
   onUpdateCustomFieldValue: (stockItemId: string, customFieldId: string, value: string) => Promise<void>;
   onReplaceProductImages: (stockItemId: string, imageUrls: string[]) => Promise<void>;
+  onAddSubProduct: (parentProductId: string, name: string, quantity: number, price: number) => Promise<void>;
+  onDeleteSubProduct: (subProductLinkId: string) => Promise<void>;
   nextNumber: number;
 }
 
@@ -43,20 +51,27 @@ export function StockDialog({
   onOpenChange,
   item,
   customFields,
-  clients,
   brands,
   origins,
   fournisseurs,
+  categories,
   onSave,
   onUpdate,
   onUpdateCustomFieldValue,
   onReplaceProductImages,
+  onAddSubProduct,
+  onDeleteSubProduct,
   nextNumber,
 }: StockDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [enableSubProducts, setEnableSubProducts] = useState(false);
+  const [stagedSubProducts, setStagedSubProducts] = useState<LocalSubProduct[]>([]);
+  const [currentStep, setCurrentStep] = useState<"product" | "subproducts">("product");
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
+  const [createdProductLabel, setCreatedProductLabel] = useState<string>("");
   
   const [formData, setFormData] = useState({
     number: nextNumber,
@@ -72,12 +87,16 @@ export function StockDialog({
     brand_id: "",
     origin_id: "",
     fournisseur_id: "",
+    category_id: "",
   });
 
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (item) {
+      setCurrentStep("product");
+      setCreatedProductId(null);
+      setCreatedProductLabel("");
       setFormData({
         number: item.number,
         description: item.description,
@@ -92,6 +111,7 @@ export function StockDialog({
         brand_id: item.brand_id || "",
         origin_id: item.origin_id || "",
         fournisseur_id: item.fournisseur_id || "",
+        category_id: item.category_id || "",
       });
 
       const mappedImages = (item.product_images || []).map((image) => image.image_url);
@@ -104,6 +124,9 @@ export function StockDialog({
       });
       setCustomFieldValues(values);
     } else {
+      setCurrentStep("product");
+      setCreatedProductId(null);
+      setCreatedProductLabel("");
       setFormData({
         number: nextNumber,
         description: "",
@@ -118,9 +141,12 @@ export function StockDialog({
         brand_id: "",
         origin_id: "",
         fournisseur_id: "",
+        category_id: "",
       });
       setCustomFieldValues({});
       setImages([]);
+      setEnableSubProducts(false);
+      setStagedSubProducts([]);
     }
   }, [item, nextNumber, open]);
 
@@ -175,6 +201,7 @@ export function StockDialog({
       brand_id: formData.brand_id || null,
       origin_id: formData.origin_id || null,
       fournisseur_id: formData.fournisseur_id || null,
+      category_id: formData.category_id || null,
     };
 
     try {
@@ -189,11 +216,18 @@ export function StockDialog({
         const newItem = await onSave(data);
         // Add custom field values for new item
         if (newItem && typeof newItem === 'object' && 'id' in newItem) {
-          await onReplaceProductImages((newItem as StockItem).id, images);
+          const createdId = (newItem as StockItem).id;
+          await onReplaceProductImages(createdId, images);
           for (const [fieldId, value] of Object.entries(customFieldValues)) {
             if (value) {
-              await onUpdateCustomFieldValue((newItem as StockItem).id, fieldId, value);
+              await onUpdateCustomFieldValue(createdId, fieldId, value);
             }
+          }
+          if (enableSubProducts) {
+            setCreatedProductId(createdId);
+            setCreatedProductLabel(formData.description || `Produit #${formData.number}`);
+            setCurrentStep("subproducts");
+            return;
           }
         }
       }
@@ -206,18 +240,62 @@ export function StockDialog({
   };
 
   const activeCustomFields = customFields.filter(f => f.is_active);
-  const totalAmount = (formData.price_ht ? parseFloat(formData.price_ht) : 0) * formData.quantity;
-  const paidAmount = formData.paid_amount ? parseFloat(formData.paid_amount) : 0;
-  const dueAmount = Math.max(0, totalAmount - paidAmount);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-lg">
-            {item ? "Modifier le produit" : "Ajouter un produit"}
+            {currentStep === "subproducts"
+              ? "Étape 2: Ajouter des sous-produits"
+              : item
+              ? "Modifier le produit"
+              : "Ajouter un produit"}
           </DialogTitle>
         </DialogHeader>
+        {currentStep === "subproducts" && createdProductId ? (
+          <div className="p-6 pt-4 space-y-4">
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <p className="text-sm text-muted-foreground">Produit créé:</p>
+              <p className="font-semibold">{createdProductLabel}</p>
+            </div>
+
+            <SubproductManager
+              subproducts={stagedSubProducts}
+              onAdd={async (name, quantity, price) => {
+                await onAddSubProduct(createdProductId, name, quantity, price);
+                setStagedSubProducts((prev) => [
+                  ...prev,
+                  {
+                    id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                    parent_product_id: createdProductId,
+                    name,
+                    quantity,
+                    price,
+                  },
+                ]);
+              }}
+              onDelete={async (id) => {
+                if (!id.startsWith("local-")) {
+                  await onDeleteSubProduct(id);
+                }
+                setStagedSubProducts((prev) => prev.filter((sp) => sp.id !== id));
+              }}
+            />
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-lg"
+                onClick={() => onOpenChange(false)}
+              >
+                Terminer
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="p-6 pt-4 space-y-5">
           {/* Image Upload */}
           <div className="space-y-2">
@@ -346,29 +424,6 @@ export function StockDialog({
             </div>
           </div>
 
-          {item && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="paid_amount" className="text-xs">Versement (DA)</Label>
-                <Input
-                  id="paid_amount"
-                  type="number"
-                  value={formData.paid_amount}
-                  onChange={(e) => setFormData({ ...formData, paid_amount: e.target.value })}
-                  min={0}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Total (DA)</Label>
-                <Input value={totalAmount.toString()} readOnly className="bg-muted/50" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Reste à payer (DA)</Label>
-                <Input value={dueAmount.toString()} readOnly className="bg-muted/50" />
-              </div>
-            </div>
-          )}
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Marque</Label>
@@ -403,6 +458,23 @@ export function StockDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label className="text-xs">Catégorie</Label>
+              <Select value={formData.category_id || "none"} onValueChange={(value) => setFormData((prev) => ({ ...prev, category_id: value === "none" ? "" : value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucune catégorie" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucune</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -422,25 +494,6 @@ export function StockDialog({
             </Select>
           </div>
 
-          {item && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">Client</Label>
-              <Select value={formData.client_id || "none"} onValueChange={(value) => setFormData((prev) => ({ ...prev, client_id: value === "none" ? "" : value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Aucun client" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucun</SelectItem>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name || client.email || "Client"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           <div className="space-y-1.5">
             <Label htmlFor="notes" className="text-xs">Notes</Label>
             <Textarea
@@ -451,6 +504,33 @@ export function StockDialog({
               rows={2}
             />
           </div>
+
+          {!item && (
+            <div className="space-y-3 rounded-lg border p-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-xs">Ajouter des sous-produits</Label>
+                  <p className="text-xs text-muted-foreground">Activer pour passer à une page dédiée après création du produit</p>
+                </div>
+                <Switch checked={enableSubProducts} onCheckedChange={setEnableSubProducts} />
+              </div>
+            </div>
+          )}
+
+          {item && (
+            <div className="space-y-3 rounded-lg border p-3">
+              <Label className="text-xs">Sous-produits</Label>
+              <SubproductManager
+                subproducts={item.sub_products || []}
+                onAdd={async (name, quantity, price) => {
+                  await onAddSubProduct(item.id, name, quantity, price);
+                }}
+                onDelete={async (id) => {
+                  await onDeleteSubProduct(id);
+                }}
+              />
+            </div>
+          )}
 
           {activeCustomFields.length > 0 && (
             <div className="space-y-3 pt-4 border-t">
@@ -496,10 +576,11 @@ export function StockDialog({
             </Button>
             <Button type="submit" size="sm" className="rounded-lg" disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {item ? "Mettre à jour" : "Ajouter"}
+              {item ? "Mettre à jour" : enableSubProducts ? "Continuer" : "Ajouter"}
             </Button>
           </DialogFooter>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -31,6 +31,10 @@ export async function uploadBrandOriginLogo(file: File): Promise<string | null> 
   return uploadToBucket(file, "brand-origin-logos", "logos");
 }
 
+export async function uploadCategoryImage(file: File): Promise<string | null> {
+  return uploadToBucket(file, "brand-origin-logos", "categories");
+}
+
 export async function deleteProductImage(imageUrl: string): Promise<boolean> {
   try {
     // Extract file path from URL

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useStock } from "@/hooks/useStock";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useDynamicBranding } from "@/hooks/useDynamicBranding";
@@ -11,12 +11,29 @@ import { StatisticsPanel } from "@/components/StatisticsPanel";
 import { CustomFieldsManager } from "@/components/CustomFieldsManager";
 import { SiteSettingsPanel } from "@/components/SiteSettingsPanel";
 import { BrandOriginManager } from "@/components/BrandOriginManager";
-import { ClientSection } from "@/components/ClientSection";
+import { CategoryManager } from "@/components/CategoryManager";
+import { ClientManagement } from "@/components/ClientManagement";
+import { PaymentTrackingManager } from "@/components/PaymentTrackingManager";
 import { FournisseurSection } from "@/components/FournisseurSection";
+import { SubproductManager } from "@/components/SubproductManager";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StockItem } from "@/types/stock";
-import { exportProductsToExcel } from "@/lib/exports";
+import { exportProductsToExcel, exportProductsToExcelDetailed, exportCatalogPdf } from "@/lib/exports";
 import {
   Package,
   PackageCheck,
@@ -32,6 +49,13 @@ import {
   TrendingUp,
   Wallet,
   CircleDollarSign,
+  ChevronDown,
+  FileText,
+  FileJson2,
+  BookOpen,
+  CreditCard,
+  Trash2,
+  ArrowLeft,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -54,6 +78,8 @@ const Index = () => {
     brands,
     origins,
     fournisseurs,
+    categories,
+    paymentTrackings,
     loading,
     searchTerm,
     setSearchTerm,
@@ -76,9 +102,18 @@ const Index = () => {
     addOrigin,
     updateOrigin,
     deleteOrigin,
+    addCategory,
+    updateCategory,
+    deleteCategory,
     addFournisseur,
     updateFournisseur,
     deleteFournisseur,
+    addSubProduct,
+    updateSubProduct,
+    deleteSubProduct,
+    addPaymentTracking,
+    updatePaymentTracking,
+    deletePaymentTracking,
     stats,
   } = useStock();
 
@@ -89,6 +124,10 @@ const Index = () => {
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState("stock");
+  const [subProductsProductId, setSubProductsProductId] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<StockItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -96,6 +135,7 @@ const Index = () => {
   const [filterBrandId, setFilterBrandId] = useState("all");
   const [filterOriginId, setFilterOriginId] = useState("all");
   const [filterFournisseurId, setFilterFournisseurId] = useState("all");
+  const [filterCategoryId, setFilterCategoryId] = useState("all");
   const [filterPriceMin, setFilterPriceMin] = useState("");
   const [filterPriceMax, setFilterPriceMax] = useState("");
 
@@ -105,6 +145,7 @@ const Index = () => {
       if (filterBrandId !== "all" && item.brand_id !== filterBrandId) return false;
       if (filterOriginId !== "all" && item.origin_id !== filterOriginId) return false;
       if (filterFournisseurId !== "all" && item.fournisseur_id !== filterFournisseurId) return false;
+      if (filterCategoryId !== "all" && item.category_id !== filterCategoryId) return false;
       if (filterPriceMin) {
         const minPrice = parseFloat(filterPriceMin);
         if (!isNaN(minPrice) && (item.price_ht || 0) < minPrice) return false;
@@ -115,7 +156,7 @@ const Index = () => {
       }
       return true;
     });
-  }, [items, filterBrandId, filterOriginId, filterFournisseurId, filterPriceMin, filterPriceMax]);
+  }, [items, filterBrandId, filterOriginId, filterFournisseurId, filterCategoryId, filterPriceMin, filterPriceMax]);
 
   // Lucide Truck imported from lucide-react
 
@@ -127,8 +168,9 @@ const Index = () => {
     }).format(value);
 
   const heroTotalValue = allItems.reduce((sum, item) => sum + (item.price_ht || 0) * item.quantity, 0);
-  const heroTotalPaid = allItems.reduce((sum, item) => sum + (item.paid_amount || 0), 0);
-  const heroTotalDue = Math.max(0, heroTotalValue - heroTotalPaid);
+  const heroTotalTracked = paymentTrackings.reduce((sum, record) => sum + (record.amount_willing_to_pay || 0), 0);
+  const heroTotalPaid = paymentTrackings.reduce((sum, record) => sum + (record.amount_paid || 0), 0);
+  const heroTotalDue = Math.max(0, heroTotalTracked - heroTotalPaid);
 
   const handleEdit = (item: StockItem) => {
     setEditingItem(item);
@@ -148,6 +190,30 @@ const Index = () => {
     setDeleteDialogOpen(false);
   };
 
+  const confirmBulkDelete = async () => {
+    if (selectedItemIds.length === 0) {
+      setBulkDeleteDialogOpen(false);
+      return;
+    }
+
+    await Promise.all(selectedItemIds.map((id) => deleteItem(id)));
+    setSelectedItemIds([]);
+    setBulkDeleteDialogOpen(false);
+  };
+
+  useEffect(() => {
+    const allIds = new Set(allItems.map((item) => item.id));
+    setSelectedItemIds((prev) => prev.filter((id) => allIds.has(id)));
+  }, [allItems]);
+
+  useEffect(() => {
+    if (!detailItem) return;
+    const refreshed = allItems.find((item) => item.id === detailItem.id);
+    if (refreshed) {
+      setDetailItem(refreshed);
+    }
+  }, [allItems, detailItem]);
+
   const handleAddNew = () => {
     setEditingItem(null);
     setDialogOpen(true);
@@ -156,6 +222,16 @@ const Index = () => {
     setDetailItem(item);
     setDetailOpen(true);
   };
+
+  const handleViewSubProductsPage = (item: StockItem) => {
+    setSubProductsProductId(item.id);
+    setActiveTab("sub-products");
+  };
+
+  const selectedSubProductsProduct = useMemo(
+    () => allItems.find((item) => item.id === subProductsProductId) || null,
+    [allItems, subProductsProductId]
+  );
 
   const nextNumber = allItems.length > 0 ? Math.max(...allItems.map((i) => i.number)) + 1 : 1;
 
@@ -202,10 +278,46 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => exportProductsToExcel(allItems, settings.currency)}>
-                <Download className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Export</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2 text-xs">
+                    <Download className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Export</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportProductsToExcel(allItems, settings.currency)}>
+                    <FileJson2 className="h-4 w-4 mr-2" />
+                    <span>Excel Basique</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportProductsToExcelDetailed(allItems, settings.currency, {
+                    company_name: settings.company_name,
+                    company_subtitle: settings.company_subtitle,
+                    company_address: settings.company_address,
+                    company_email: settings.company_email,
+                    company_phone: settings.company_phone,
+                    logo_url: settings.logo_url,
+                    currency: settings.currency,
+                  })}>
+                    <FileJson2 className="h-4 w-4 mr-2" />
+                    <span>Excel Détaillé (Avec Images)</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => exportCatalogPdf(allItems, {
+                    company_name: settings.company_name,
+                    company_subtitle: settings.company_subtitle,
+                    company_address: settings.company_address,
+                    company_email: settings.company_email,
+                    company_phone: settings.company_phone,
+                    logo_url: settings.logo_url,
+                    currency: settings.currency,
+                  }, "Catalogue de Produits")}>
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    <span>PDF Catalogue</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button onClick={handleAddNew} size="sm" className="gap-2 gradient-primary border-0 text-white shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transition-all">
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Nouveau produit</span>
@@ -236,7 +348,7 @@ const Index = () => {
                   <Wallet className="h-5 w-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Total Versements</p>
+                  <p className="text-xs font-medium text-muted-foreground">Total Versements (Suivi)</p>
                   <p className="text-lg font-bold tracking-tight text-success">{formatCurrency(heroTotalPaid)}</p>
                 </div>
               </div>
@@ -247,7 +359,7 @@ const Index = () => {
                   <CircleDollarSign className="h-5 w-5 text-warning" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Reste Global à Payer</p>
+                  <p className="text-xs font-medium text-muted-foreground">Reste Global à Payer (Suivi)</p>
                   <p className="text-lg font-bold tracking-tight text-warning">{formatCurrency(heroTotalDue)}</p>
                 </div>
               </div>
@@ -256,8 +368,8 @@ const Index = () => {
         </div>
       </div>
 
-      <main className="container py-6">
-        <Tabs defaultValue="stock" className="space-y-6">
+      <main className="container max-w-[1900px] py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="flex items-center justify-between">
             <TabsList className="h-11 p-1 bg-muted/60 backdrop-blur-sm rounded-xl">
               <TabsTrigger value="stock" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
@@ -272,6 +384,10 @@ const Index = () => {
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Clients</span>
               </TabsTrigger>
+              <TabsTrigger value="payment-tracking" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+                <CreditCard className="h-4 w-4" />
+                <span className="hidden sm:inline">Suivi Paiement</span>
+              </TabsTrigger>
               <TabsTrigger value="fournisseurs" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
                 <Truck className="h-4 w-4" />
                 <span className="hidden sm:inline">Fournisseurs</span>
@@ -279,6 +395,10 @@ const Index = () => {
               <TabsTrigger value="settings" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Paramètres</span>
+              </TabsTrigger>
+              <TabsTrigger value="sub-products" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+                <Package className="h-4 w-4" />
+                <span className="hidden sm:inline">Sous-produits</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -320,12 +440,15 @@ const Index = () => {
               brands={brands}
               origins={origins}
               fournisseurs={fournisseurs}
+              categories={categories}
               filterBrandId={filterBrandId}
               onFilterBrandChange={setFilterBrandId}
               filterOriginId={filterOriginId}
               onFilterOriginChange={setFilterOriginId}
               filterFournisseurId={filterFournisseurId}
               onFilterFournisseurChange={setFilterFournisseurId}
+              filterCategoryId={filterCategoryId}
+              onFilterCategoryChange={setFilterCategoryId}
               filterPriceMin={filterPriceMin}
               onFilterPriceMinChange={setFilterPriceMin}
               filterPriceMax={filterPriceMax}
@@ -333,12 +456,32 @@ const Index = () => {
             />
 
             {/* Table */}
+            {selectedItemIds.length > 0 && (
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2">
+                <p className="text-sm">
+                  {selectedItemIds.length} produit(s) sélectionné(s)
+                </p>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="gap-2"
+                  onClick={() => setBulkDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Supprimer la sélection
+                </Button>
+              </div>
+            )}
+
             <StockTable 
               items={advancedFilteredItems} 
               customFields={customFields}
+              selectedIds={selectedItemIds}
+              onSelectionChange={setSelectedItemIds}
               onEdit={handleEdit} 
               onDelete={handleDelete}
               onViewDetail={handleViewDetail}
+              onViewSubProducts={handleViewSubProductsPage}
             />
 
             {/* Results count */}
@@ -350,27 +493,36 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="statistics" className="animate-in">
-            <StatisticsPanel stats={stats} />
+            <StatisticsPanel stats={stats} items={allItems} />
           </TabsContent>
 
           <TabsContent value="clients" className="space-y-6 animate-in">
-            <ClientSection
+            <ClientManagement
               clients={clients}
               items={allItems}
+              paymentTrackings={paymentTrackings}
               currency={settings.currency}
-              clientFeatureAvailable={clientFeatureAvailable}
               onAdd={addClient}
               onUpdate={updateClient}
               onDelete={deleteClient}
-              onUpdateItem={updateItem}
+            />
+          </TabsContent>
+
+          <TabsContent value="payment-tracking" className="space-y-6 animate-in">
+            <PaymentTrackingManager
+              items={allItems}
+              clients={clients}
+              currency={settings.currency}
+              paymentRecords={paymentTrackings}
+              onAddPayment={addPaymentTracking}
+              onUpdatePayment={updatePaymentTracking}
+              onDeletePayment={deletePaymentTracking}
             />
           </TabsContent>
 
           <TabsContent value="fournisseurs" className="space-y-6 animate-in">
             <FournisseurSection
               fournisseurs={fournisseurs}
-              items={allItems}
-              currency={settings.currency}
               onAdd={addFournisseur}
               onUpdate={updateFournisseur}
               onDelete={deleteFournisseur}
@@ -400,6 +552,68 @@ const Index = () => {
               onUpdateOrigin={updateOrigin}
               onDeleteOrigin={deleteOrigin}
             />
+            <CategoryManager
+              categories={categories}
+              onAdd={addCategory}
+              onUpdate={updateCategory}
+              onDelete={deleteCategory}
+            />
+          </TabsContent>
+
+          <TabsContent value="sub-products" className="space-y-6 animate-in">
+            <div className="space-y-4">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 rounded-lg border p-4 bg-card">
+                <div className="flex-1 space-y-2">
+                  <p className="text-xs text-muted-foreground">Choisir le produit principal</p>
+                  <Select
+                    value={subProductsProductId || "none"}
+                    onValueChange={(value) => setSubProductsProductId(value === "none" ? null : value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un produit" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value="none">Aucun</SelectItem>
+                      {allItems.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
+                          #{item.number} - {item.description}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="outline" onClick={() => setActiveTab("stock")} className="gap-2">
+                  <ArrowLeft className="h-4 w-4" />
+                  Retour au stock
+                </Button>
+              </div>
+
+              {selectedSubProductsProduct ? (
+                <>
+                  <div className="rounded-lg border p-4 bg-card">
+                    <p className="text-xs text-muted-foreground">Produit principal</p>
+                    <p className="font-semibold">#{selectedSubProductsProduct.number} - {selectedSubProductsProduct.description}</p>
+                  </div>
+
+                  <SubproductManager
+                    subproducts={selectedSubProductsProduct.sub_products || []}
+                    onAdd={async (name, quantity, price) => {
+                      await addSubProduct(selectedSubProductsProduct.id, name, quantity, price);
+                    }}
+                    onUpdate={async (id, quantity) => {
+                      await updateSubProduct(id, quantity);
+                    }}
+                    onDelete={async (id) => {
+                      await deleteSubProduct(id);
+                    }}
+                  />
+                </>
+              ) : (
+                <div className="rounded-lg border p-6 text-center text-muted-foreground">
+                  Sélectionnez un produit pour afficher et gérer ses sous-produits.
+                </div>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </main>
@@ -410,14 +624,16 @@ const Index = () => {
         onOpenChange={setDialogOpen}
         item={editingItem}
         customFields={customFields}
-        clients={clients}
         brands={brands}
         origins={origins}
         fournisseurs={fournisseurs}
+        categories={categories}
         onSave={addItem}
         onUpdate={updateItem}
         onUpdateCustomFieldValue={updateCustomFieldValue}
         onReplaceProductImages={replaceProductImages}
+        onAddSubProduct={addSubProduct}
+        onDeleteSubProduct={deleteSubProduct}
         nextNumber={nextNumber}
       />
 
@@ -442,6 +658,27 @@ const Index = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer la sélection</AlertDialogTitle>
+            <AlertDialogDescription>
+              Voulez-vous supprimer {selectedItemIds.length} produit(s) sélectionné(s) ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Supprimer tout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Product Detail */}
       <ProductDetailDialog
         open={detailOpen}
@@ -457,8 +694,9 @@ const Index = () => {
           logo_url: settings.logo_url,
           currency: settings.currency,
         }}
-        clients={clients}
-        onUpdateItem={updateItem}
+        onAddSubProduct={addSubProduct}
+        onUpdateSubProduct={updateSubProduct}
+        onDeleteSubProduct={deleteSubProduct}
       />
     </div>
   );

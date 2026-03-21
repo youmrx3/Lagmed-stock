@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { StockItem, CustomField, StockStats, Client, Brand, Origin, Fournisseur } from "@/types/stock";
+import { StockItem, CustomField, StockStats, Client, Brand, Origin, Fournisseur, Category, PaymentTracking } from "@/types/stock";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -11,6 +11,8 @@ export function useStock() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [origins, setOrigins] = useState<Origin[]>([]);
   const [fournisseurs, setFournisseurs] = useState<Fournisseur[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [paymentTrackings, setPaymentTrackings] = useState<PaymentTracking[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "in-stock" | "low-stock" | "out-of-stock">("all");
@@ -37,105 +39,89 @@ export function useStock() {
     try {
       const { data, error } = await supabase
         .from("stock_items")
-        .select(`
-          *,
-          custom_field_values (
-            id,
-            custom_field_id,
-            value,
-            custom_fields (
-              id,
-              name,
-              field_type,
-              is_active
-            )
-          ),
-          product_images (
-            id,
-            stock_item_id,
-            image_url,
-            sort_order,
-            created_at
-          ),
-          client:clients (
-            id,
-            name,
-            email,
-            phone,
-            notes
-          ),
-          brand:brands (
-            id,
-            name,
-            logo_url
-          ),
-          origin:origins (
-            id,
-            name,
-            logo_url
-          ),
-          fournisseur:fournisseurs (
-            id,
-            name,
-            email,
-            phone,
-            address,
-            notes
-          )
-        `)
+        .select("*")
         .order("number", { ascending: true });
 
       if (error) {
-        if (!isMissingRelationError(error)) throw error;
-
-        const { data: legacyData, error: legacyError } = await supabase
-          .from("stock_items")
-          .select(`
-            *,
-            custom_field_values (
-              id,
-              custom_field_id,
-              value,
-              custom_fields (
-                id,
-                name,
-                field_type,
-                is_active
-              )
-            )
-          `)
-          .order("number", { ascending: true });
-
-        if (legacyError) throw legacyError;
-
-        const normalizedLegacy = ((legacyData as unknown as StockItem[]) || []).map((item) => ({
-          ...item,
-          paid_amount: item.paid_amount || 0,
-          client_id: item.client_id || null,
-          brand_id: item.brand_id || null,
-          origin_id: item.origin_id || null,
-          client: null,
-          brand: null,
-          origin: null,
-          fournisseur: null,
-          product_images: item.image_url ? [{ id: `legacy-${item.id}`, stock_item_id: item.id, image_url: item.image_url }] : [],
-        }));
-
-        setItems(normalizedLegacy);
-        return;
+        console.error("Error fetching stock items:", error);
+        throw error;
       }
 
-      const normalized = ((data as unknown as StockItem[]) || []).map((item) => {
-        const productImages = [...(item.product_images || [])].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-        const firstImage = productImages[0]?.image_url || item.image_url;
-        return {
-          ...item,
-          paid_amount: item.paid_amount || 0,
-          image_url: firstImage || null,
-          product_images: productImages,
-        };
-      });
-      setItems(normalized);
+      let items = ((data as unknown as StockItem[]) || []);
+
+      // Fetch custom field values separately
+      const { data: cfvData } = await supabase
+        .from("custom_field_values")
+        .select("id, stock_item_id, custom_field_id, value, custom_fields(id, name, field_type, is_active)");
+      
+      // Fetch product images separately
+      const { data: imagesData } = await supabase
+        .from("product_images")
+        .select("id, stock_item_id, image_url, sort_order, created_at");
+
+      // Fetch product sub-products separately
+      const { data: subProductsData } = await supabase
+        .from("product_sub_products")
+        .select("id, parent_product_id, name, quantity, price, created_at, updated_at");
+
+      // Attach custom field values
+      items = items.map(item => ({
+        ...item,
+        custom_field_values: (cfvData || []).filter(cfv => cfv.stock_item_id === item.id) as any,
+        product_images: (imagesData || []).filter(img => img.stock_item_id === item.id) as any,
+        sub_products: (subProductsData || []).filter(sp => sp.parent_product_id === item.id) as any,
+      }));
+
+      // Fetch relationships separately
+      const clientIds = [...new Set(items.map(i => i.client_id).filter(Boolean))];
+      const brandIds = [...new Set(items.map(i => i.brand_id).filter(Boolean))];
+      const originIds = [...new Set(items.map(i => i.origin_id).filter(Boolean))];
+      const fournisseurIds = [...new Set(items.map(i => i.fournisseur_id).filter(Boolean))];
+      const categoryIds = [...new Set(items.map(i => i.category_id).filter(Boolean))];
+
+      let clients: any[] = [];
+      let brands: any[] = [];
+      let origins: any[] = [];
+      let fournisseurs: any[] = [];
+      let categories: any[] = [];
+
+      if (clientIds.length > 0) {
+        const { data: d } = await supabase.from("clients").select("*").in("id", clientIds);
+        clients = d || [];
+      }
+      if (brandIds.length > 0) {
+        const { data: d } = await supabase.from("brands").select("*").in("id", brandIds);
+        brands = d || [];
+      }
+      if (originIds.length > 0) {
+        const { data: d } = await supabase.from("origins").select("*").in("id", originIds);
+        origins = d || [];
+      }
+      if (fournisseurIds.length > 0) {
+        const { data: d } = await supabase.from("fournisseurs").select("*").in("id", fournisseurIds);
+        fournisseurs = d || [];
+      }
+      if (categoryIds.length > 0) {
+        const { data: d } = await supabase.from("categories").select("*").in("id", categoryIds);
+        categories = d || [];
+      }
+
+      // Attach relationships
+      items = items.map(item => ({
+        ...item,
+        paid_amount: item.paid_amount || 0,
+        image_url: item.product_images?.[0]?.image_url || item.image_url || null,
+        client: clients.find(c => c.id === item.client_id) || null,
+        brand: brands.find(b => b.id === item.brand_id) || null,
+        origin: origins.find(o => o.id === item.origin_id) || null,
+        fournisseur: fournisseurs.find(f => f.id === item.fournisseur_id) || null,
+        category: categories.find(c => c.id === item.category_id) || null,
+        custom_field_values: item.custom_field_values,
+        product_images: item.product_images,
+        sub_products: item.sub_products,
+      }));
+
+      setItems(items);
     } catch (error) {
       console.error("Error fetching items:", error);
       toast.error("Erreur lors du chargement des produits");
@@ -242,14 +228,64 @@ export function useStock() {
     }
   }, []);
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name", { ascending: true });
+
+      if (error) {
+        if (isMissingRelationError(error)) {
+          setCategories([]);
+          return;
+        }
+        throw error;
+      }
+      setCategories((data as Category[]) || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  }, []);
+
+  const fetchPaymentTrackings = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("payment_tracking")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        if (isMissingRelationError(error)) {
+          setPaymentTrackings([]);
+          return;
+        }
+        throw error;
+      }
+
+      setPaymentTrackings((data as unknown as PaymentTracking[]) || []);
+    } catch (error) {
+      console.error("Error fetching payment tracking:", error);
+    }
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchItems(), fetchCustomFields(), fetchClients(), fetchBrands(), fetchOrigins(), fetchFournisseurs()]);
+      await Promise.all([
+        fetchItems(),
+        fetchCustomFields(),
+        fetchClients(),
+        fetchBrands(),
+        fetchOrigins(),
+        fetchFournisseurs(),
+        fetchCategories(),
+        fetchPaymentTrackings(),
+      ]);
       setLoading(false);
     };
     loadData();
-  }, [fetchItems, fetchCustomFields, fetchClients, fetchBrands, fetchOrigins, fetchFournisseurs]);
+  }, [fetchItems, fetchCustomFields, fetchClients, fetchBrands, fetchOrigins, fetchFournisseurs, fetchCategories, fetchPaymentTrackings]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -260,6 +296,7 @@ export function useStock() {
         (item.fournisseur?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.brand?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.origin?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.category?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.number.toString().includes(searchTerm);
 
       let matchesFilter = true;
@@ -288,6 +325,7 @@ export function useStock() {
         brand_id: item.brand_id || null,
         origin_id: item.origin_id || null,
         fournisseur_id: item.fournisseur_id || null,
+        category_id: item.category_id || null,
         reserved: item.reserved,
         remaining: item.remaining,
         notes: item.notes || "",
@@ -323,7 +361,7 @@ export function useStock() {
         if (legacyError) throw legacyError;
         inserted = legacyInserted;
       }
-      await fetchItems();
+      await Promise.all([fetchItems(), fetchPaymentTrackings()]);
       toast.success("Produit ajouté avec succès");
       return inserted;
     } catch (error) {
@@ -331,7 +369,7 @@ export function useStock() {
       toast.error("Erreur lors de l'ajout du produit");
       return null;
     }
-  }, [fetchItems]);
+  }, [fetchItems, fetchPaymentTrackings]);
 
   const updateItem = useCallback(async (id: string, updates: Partial<StockItem>) => {
     try {
@@ -346,6 +384,7 @@ export function useStock() {
         brand_id: updates.brand_id,
         origin_id: updates.origin_id,
         fournisseur_id: updates.fournisseur_id,
+        category_id: updates.category_id,
         reserved: updates.reserved,
         remaining: updates.remaining,
         notes: updates.notes,
@@ -376,13 +415,13 @@ export function useStock() {
 
         if (legacyError) throw legacyError;
       }
-      await fetchItems();
+      await Promise.all([fetchItems(), fetchPaymentTrackings()]);
       toast.success("Produit mis à jour");
     } catch (error) {
       console.error("Error updating item:", error);
       toast.error("Erreur lors de la mise à jour");
     }
-  }, [fetchItems]);
+  }, [fetchItems, fetchPaymentTrackings]);
 
   const deleteItem = useCallback(async (id: string) => {
     try {
@@ -392,13 +431,13 @@ export function useStock() {
         .eq("id", id);
 
       if (error) throw error;
-      await fetchItems();
+      await Promise.all([fetchItems(), fetchPaymentTrackings()]);
       toast.success("Produit supprimé");
     } catch (error) {
       console.error("Error deleting item:", error);
       toast.error("Erreur lors de la suppression");
     }
-  }, [fetchItems]);
+  }, [fetchItems, fetchPaymentTrackings]);
 
   // Custom fields management
   const addCustomField = useCallback(async (field: Omit<CustomField, "id" | "created_at">) => {
@@ -455,6 +494,82 @@ export function useStock() {
     } catch (error) {
       console.error("Error replacing product images:", error);
       toast.error("Erreur lors de la mise à jour des images");
+    }
+  }, [fetchItems]);
+
+  // Sub-product management
+  const addSubProduct = useCallback(async (parentProductId: string, name: string, quantity: number, price: number = 0) => {
+    try {
+      if (!name.trim()) {
+        toast.error("Veuillez entrer un nom pour le sous-produit");
+        return;
+      }
+
+      if (quantity <= 0) {
+        toast.error("La quantité doit être supérieure à 0");
+        return;
+      }
+
+      if (price < 0) {
+        toast.error("Le prix ne peut pas être négatif");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("product_sub_products")
+        .insert({
+          parent_product_id: parentProductId,
+          name: name.trim(),
+          quantity,
+          price,
+        });
+
+      if (error) throw error;
+
+      toast.success("Sous-produit ajouté");
+      await fetchItems();
+    } catch (error) {
+      console.error("Error adding sub-product:", error);
+      toast.error("Erreur lors de l'ajout du sous-produit");
+    }
+  }, [fetchItems]);
+
+  const updateSubProduct = useCallback(async (subProductLinkId: string, quantity: number) => {
+    try {
+      if (quantity <= 0) {
+        toast.error("La quantité doit être supérieure à 0");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("product_sub_products")
+        .update({ quantity })
+        .eq("id", subProductLinkId);
+
+      if (error) throw error;
+
+      toast.success("Sous-produit mis à jour");
+      await fetchItems();
+    } catch (error) {
+      console.error("Error updating sub-product:", error);
+      toast.error("Erreur lors de la mise à jour du sous-produit");
+    }
+  }, [fetchItems]);
+
+  const deleteSubProduct = useCallback(async (subProductLinkId: string) => {
+    try {
+      const { error } = await supabase
+        .from("product_sub_products")
+        .delete()
+        .eq("id", subProductLinkId);
+
+      if (error) throw error;
+
+      toast.success("Sous-produit supprimé");
+      await fetchItems();
+    } catch (error) {
+      console.error("Error deleting sub-product:", error);
+      toast.error("Erreur lors de la suppression du sous-produit");
     }
   }, [fetchItems]);
 
@@ -638,6 +753,58 @@ export function useStock() {
     }
   }, [fetchOrigins, fetchItems]);
 
+  // Category CRUD
+  const addCategory = useCallback(async (cat: Partial<Category>) => {
+    try {
+      if (!cat.name?.trim()) {
+        toast.error("Le nom de la catégorie est requis");
+        return;
+      }
+      const { error } = await supabase.from("categories").insert({
+        name: cat.name.trim(),
+        image_url: cat.image_url || null,
+      });
+      if (error) throw error;
+      await fetchCategories();
+      toast.success("Catégorie ajoutée");
+    } catch (error) {
+      console.error("Error adding category:", error);
+      if (isMissingRelationError(error)) {
+        toast.error("Table categories manquante sur Supabase. Exécutez la migration SQL.");
+        return;
+      }
+      toast.error("Erreur lors de l'ajout de la catégorie");
+    }
+  }, [fetchCategories]);
+
+  const updateCategory = useCallback(async (id: string, updates: Partial<Category>) => {
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .update({ name: updates.name, image_url: updates.image_url ?? null })
+        .eq("id", id);
+      if (error) throw error;
+      await fetchCategories();
+      toast.success("Catégorie mise à jour");
+    } catch (error) {
+      console.error("Error updating category:", error);
+      toast.error("Erreur lors de la mise à jour de la catégorie");
+    }
+  }, [fetchCategories]);
+
+  const deleteCategory = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (error) throw error;
+      await fetchCategories();
+      await fetchItems();
+      toast.success("Catégorie supprimée");
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast.error("Erreur lors de la suppression de la catégorie");
+    }
+  }, [fetchCategories, fetchItems]);
+
   // Fournisseur CRUD
   const addFournisseur = useCallback(async (fournisseur: Partial<Fournisseur>) => {
     try {
@@ -757,6 +924,7 @@ export function useStock() {
 
   const stats: StockStats = useMemo(() => {
     const totalItems = items.length;
+    const totalSubProducts = items.reduce((sum, item) => sum + (item.sub_products?.length || 0), 0);
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
     const totalReserved = items.reduce((sum, item) => sum + item.reserved, 0);
     const totalRemaining = items.reduce((sum, item) => sum + item.remaining, 0);
@@ -765,28 +933,14 @@ export function useStock() {
     const inStock = items.filter((item) => item.remaining > 5).length;
     const totalValue = items.reduce((sum, item) => sum + (item.price_ht || 0) * item.quantity, 0);
 
-    // Category breakdown based on description keywords
-    const categories: Record<string, number> = {};
+    // Category breakdown based on actual categories
+    const categoryCounts: Record<string, number> = {};
     items.forEach(item => {
-      const desc = item.description.toLowerCase();
-      let category = "Autre";
-      if (desc.includes("incubator") || desc.includes("couveuse") || desc.includes("infant") || desc.includes("néonatal")) {
-        category = "Néonatologie";
-      } else if (desc.includes("aspirateur") || desc.includes("respirateur")) {
-        category = "Respiratoire";
-      } else if (desc.includes("morgue") || desc.includes("autopsy") || desc.includes("body bag")) {
-        category = "Morgue";
-      } else if (desc.includes("boite") || desc.includes("kit")) {
-        category = "Instrumentation";
-      } else if (desc.includes("table") || desc.includes("lit")) {
-        category = "Mobilier";
-      } else if (desc.includes("monitor") || desc.includes("ecg") || desc.includes("défibrillateur")) {
-        category = "Monitoring";
-      }
-      categories[category] = (categories[category] || 0) + 1;
+      const category = item.category?.name || "Sans catégorie";
+      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
     });
 
-    const categoryBreakdown = Object.entries(categories)
+    const categoryBreakdown = Object.entries(categoryCounts)
       .map(([category, count]) => ({ category, count }))
       .sort((a, b) => b.count - a.count);
 
@@ -798,6 +952,7 @@ export function useStock() {
 
     return {
       totalItems,
+      totalSubProducts,
       totalQuantity,
       totalReserved,
       totalRemaining,
@@ -809,6 +964,119 @@ export function useStock() {
     };
   }, [items]);
 
+  // Payment tracking management
+  const addPaymentTracking = useCallback(async (
+    clientId: string,
+    productId: string | null,
+    subProductId: string | null,
+    amountWillingToPay: number,
+    amountPaid: number = 0,
+    notes: string = ""
+  ) => {
+    try {
+      if (!clientId) {
+        toast.error("Veuillez sélectionner un client");
+        return;
+      }
+
+      if (!productId && !subProductId) {
+        toast.error("Veuillez sélectionner un produit ou un sous-produit");
+        return;
+      }
+
+      if (amountWillingToPay <= 0) {
+        toast.error("Le montant doit être supérieur à 0");
+        return;
+      }
+
+      const status = amountPaid === 0 ? "pending" : amountPaid >= amountWillingToPay ? "completed" : "partial";
+
+      const { error } = await supabase.from("payment_tracking").insert({
+        client_id: clientId,
+        product_id: productId,
+        sub_product_id: subProductId,
+        amount_willing_to_pay: amountWillingToPay,
+        amount_paid: amountPaid,
+        status,
+        notes,
+      });
+
+      if (error) throw error;
+      toast.success("Suivi de paiement enregistré");
+      await Promise.all([fetchItems(), fetchPaymentTrackings()]);
+    } catch (error) {
+      console.error("Error adding payment tracking:", error);
+      toast.error("Erreur lors de l'enregistrement du suivi");
+      throw error;
+    }
+  }, [fetchItems, fetchPaymentTrackings]);
+
+  const updatePaymentTracking = useCallback(async (
+    id: string,
+    updates: {
+      amount_paid?: number;
+      amount_willing_to_pay?: number;
+      status?: "pending" | "partial" | "completed";
+      notes?: string;
+    }
+  ) => {
+    try {
+      let updateData: any = { ...updates };
+
+      // Auto-calculate status based on amounts
+      if (updates.amount_paid !== undefined) {
+        const { data: record } = await supabase
+          .from("payment_tracking")
+          .select("amount_willing_to_pay")
+          .eq("id", id)
+          .single();
+
+        if (record) {
+          const totalAmount = updates.amount_willing_to_pay || record.amount_willing_to_pay;
+          const paidAmount = updates.amount_paid;
+          
+          if (paidAmount === 0) {
+            updateData.status = "pending";
+          } else if (paidAmount >= totalAmount) {
+            updateData.status = "completed";
+          } else {
+            updateData.status = "partial";
+          }
+        }
+      }
+
+      const { error } = await supabase
+        .from("payment_tracking")
+        .update(updateData)
+        .eq("id", id);
+
+      if (error) throw error;
+      toast.success("Suivi de paiement mis à jour");
+      await Promise.all([fetchItems(), fetchPaymentTrackings()]);
+    } catch (error) {
+      console.error("Error updating payment tracking:", error);
+      toast.error("Erreur lors de la mise à jour");
+      throw error;
+    }
+  }, [fetchItems, fetchPaymentTrackings]);
+
+  const deletePaymentTracking = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("payment_tracking")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      toast.success("Suivi de paiement supprimé");
+      await Promise.all([fetchItems(), fetchPaymentTrackings()]);
+    } catch (error) {
+      console.error("Error deleting payment tracking:", error);
+      toast.error("Erreur lors de la suppression");
+      throw error;
+    }
+  }, [fetchItems, fetchPaymentTrackings]);
+
   return {
     items: filteredItems,
     allItems: items,
@@ -818,6 +1086,8 @@ export function useStock() {
     brands,
     origins,
     fournisseurs,
+    categories,
+    paymentTrackings,
     loading,
     searchTerm,
     setSearchTerm,
@@ -831,6 +1101,9 @@ export function useStock() {
     deleteCustomField,
     updateCustomFieldValue,
     replaceProductImages,
+    addSubProduct,
+    updateSubProduct,
+    deleteSubProduct,
     addClient,
     updateClient,
     deleteClient,
@@ -840,12 +1113,27 @@ export function useStock() {
     addOrigin,
     updateOrigin,
     deleteOrigin,
+    addCategory,
+    updateCategory,
+    deleteCategory,
     addFournisseur,
     updateFournisseur,
     deleteFournisseur,
+    addPaymentTracking,
+    updatePaymentTracking,
+    deletePaymentTracking,
     stats,
     refetch: async () => {
-      await Promise.all([fetchItems(), fetchCustomFields(), fetchClients(), fetchBrands(), fetchOrigins(), fetchFournisseurs()]);
+      await Promise.all([
+        fetchItems(),
+        fetchCustomFields(),
+        fetchClients(),
+        fetchBrands(),
+        fetchOrigins(),
+        fetchFournisseurs(),
+        fetchCategories(),
+        fetchPaymentTrackings(),
+      ]);
     },
   };
 }

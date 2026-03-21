@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { StockItem, CustomField, Client } from "@/types/stock";
+import { useState } from "react";
+import { StockItem, CustomField } from "@/types/stock";
 import {
   Dialog,
   DialogContent,
@@ -10,16 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SubproductManager } from "@/components/SubproductManager";
 import { CompanyExportProfile, exportProductToDoc, exportProductToPdf } from "@/lib/exports";
-import { Download, FileText as FileTextIcon, Image as ImageIcon, Package, Tag, Hash, Calendar, User, Building2, Globe, Truck, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, FileText as FileTextIcon, Image as ImageIcon, Package, Tag, Hash, Calendar, Building2, Globe, Truck, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ProductDetailDialogProps {
   open: boolean;
@@ -27,8 +20,9 @@ interface ProductDetailDialogProps {
   item: StockItem | null;
   customFields: CustomField[];
   companyProfile: CompanyExportProfile;
-  clients: Client[];
-  onUpdateItem: (id: string, updates: Partial<StockItem>) => Promise<void>;
+  onAddSubProduct: (parentProductId: string, name: string, quantity: number, price: number) => Promise<void>;
+  onUpdateSubProduct: (subProductLinkId: string, quantity: number) => Promise<void>;
+  onDeleteSubProduct: (subProductLinkId: string) => Promise<void>;
 }
 
 function getStockStatus(remaining: number, quantity: number) {
@@ -37,18 +31,18 @@ function getStockStatus(remaining: number, quantity: number) {
   return { label: "En stock", variant: "success" as const };
 }
 
-export function ProductDetailDialog({ open, onOpenChange, item, customFields, companyProfile, clients, onUpdateItem }: ProductDetailDialogProps) {
+export function ProductDetailDialog({
+  open,
+  onOpenChange,
+  item,
+  customFields,
+  companyProfile,
+  onAddSubProduct,
+  onUpdateSubProduct,
+  onDeleteSubProduct,
+}: ProductDetailDialogProps) {
   const [extraText, setExtraText] = useState("");
-  const [selectedClientId, setSelectedClientId] = useState<string>(item?.client_id || "none");
-  const [paidAmount, setPaidAmount] = useState<string>((item?.paid_amount || 0).toString());
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-
-  useEffect(() => {
-    if (!item) return;
-    setSelectedClientId(item.client_id || "none");
-    setPaidAmount((item.paid_amount || 0).toString());
-    setActiveImageIndex(0);
-  }, [item]);
 
   if (!item) return null;
 
@@ -72,13 +66,6 @@ export function ProductDetailDialog({ open, onOpenChange, item, customFields, co
       ? [item.image_url]
       : [];
   const displayedImage = images[activeImageIndex] || images[0];
-
-  const handleSaveFollowUp = async () => {
-    await onUpdateItem(item.id, {
-      client_id: selectedClientId === "none" ? null : selectedClientId,
-      paid_amount: Number.isFinite(Number(paidAmount)) ? Number(paidAmount) : 0,
-    });
-  };
 
   const getCustomFieldValue = (fieldId: string) => {
     const cfv = item.custom_field_values?.find(v => v.custom_field_id === fieldId);
@@ -174,11 +161,6 @@ export function ProductDetailDialog({ open, onOpenChange, item, customFields, co
 
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div className="rounded-xl border bg-muted/20 p-3 space-y-1">
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5"><User className="h-3 w-3" />Client</p>
-              <p className="font-semibold text-sm">{item.client?.name || "-"}</p>
-              {item.client?.email && <p className="text-xs text-muted-foreground">{item.client.email}</p>}
-            </div>
-            <div className="rounded-xl border bg-muted/20 p-3 space-y-1">
               <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Truck className="h-3 w-3" />Fournisseur</p>
               <p className="font-semibold text-sm">{item.fournisseur?.name || "-"}</p>
               {item.fournisseur?.phone && <p className="text-xs text-muted-foreground">{item.fournisseur.phone}</p>}
@@ -191,33 +173,6 @@ export function ProductDetailDialog({ open, onOpenChange, item, customFields, co
               <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Globe className="h-3 w-3" />Origine</p>
               <p className="font-semibold text-sm">{item.origin?.name || "-"}</p>
             </div>
-          </div>
-
-          <div className="space-y-3 rounded-xl border bg-muted/10 p-4">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Suivi client et versement</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Client</p>
-                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Aucun client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Aucun</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name || client.email || "Client"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Versement</p>
-                <Input type="number" min={0} value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} />
-              </div>
-            </div>
-            <Button size="sm" className="rounded-lg" onClick={handleSaveFollowUp}>Enregistrer le suivi</Button>
           </div>
 
           {/* Reference */}
@@ -259,6 +214,24 @@ export function ProductDetailDialog({ open, onOpenChange, item, customFields, co
               </div>
             </>
           )}
+
+          <Separator />
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-muted-foreground">Sous-produits</h4>
+            <SubproductManager
+              subproducts={item.sub_products || []}
+              onAdd={async (name, quantity, price) => {
+                await onAddSubProduct(item.id, name, quantity, price);
+              }}
+              onUpdate={async (id, quantity) => {
+                await onUpdateSubProduct(id, quantity);
+              }}
+              onDelete={async (id) => {
+                await onDeleteSubProduct(id);
+              }}
+            />
+          </div>
 
           {/* Dates */}
           <Separator />
