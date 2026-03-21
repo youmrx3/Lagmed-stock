@@ -331,7 +331,7 @@ const Index = () => {
       <div className="border-b bg-gradient-to-b from-card/50 to-background">
         <div className="container py-5">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="group relative overflow-hidden rounded-xl border bg-card p-4 transition-all hover:shadow-md">
+            <div className="group relative overflow-hidden rounded-xl border bg-card/90 backdrop-blur-sm p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <TrendingUp className="h-5 w-5 text-primary" />
@@ -342,7 +342,7 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div className="group relative overflow-hidden rounded-xl border bg-card p-4 transition-all hover:shadow-md">
+            <div className="group relative overflow-hidden rounded-xl border bg-card/90 backdrop-blur-sm p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-success/10 flex items-center justify-center">
                   <Wallet className="h-5 w-5 text-success" />
@@ -353,7 +353,7 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div className="group relative overflow-hidden rounded-xl border bg-card p-4 transition-all hover:shadow-md">
+            <div className="group relative overflow-hidden rounded-xl border bg-card/90 backdrop-blur-sm p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
                   <CircleDollarSign className="h-5 w-5 text-warning" />
