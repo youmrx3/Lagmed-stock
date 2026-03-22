@@ -23,14 +23,15 @@ export function StatsCard({ title, value, icon: Icon, variant = "default" }: Sta
   };
 
   return (
-    <div className={`group relative overflow-hidden rounded-xl border border-l-[3px] ${borderStyles[variant]} bg-card p-4 transition-all hover:shadow-md`}>
+    <div className={`group relative overflow-hidden rounded-2xl border border-l-[3px] ${borderStyles[variant]} bg-card/90 backdrop-blur-sm p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg`}>
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
       <div className="flex items-center gap-3">
-        <div className={`h-10 w-10 shrink-0 rounded-lg flex items-center justify-center ${iconStyles[variant]}`}>
+        <div className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center shadow-sm ${iconStyles[variant]}`}>
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
-          <p className="text-xl font-bold tracking-tight mt-0.5">{value}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">{title}</p>
+          <p className="text-2xl font-extrabold tracking-tight mt-0.5">{value}</p>
         </div>
       </div>
     </div>

@@ -67,11 +67,11 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
   };
 
   return (
-    <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+    <div className="rounded-2xl border bg-card/90 backdrop-blur-sm overflow-hidden shadow-sm">
       <div className="overflow-hidden [&_th]:border-r [&_th]:border-border/60 [&_th:last-child]:border-r-0 [&_td]:border-r [&_td]:border-border/40 [&_td:last-child]:border-r-0">
         <Table className="w-full table-fixed">
           <TableHeader>
-            <TableRow className="bg-muted/40 hover:bg-muted/40 border-b">
+            <TableRow className="bg-muted/35 hover:bg-muted/35 border-b">
               <TableHead className="w-12">
                 <Checkbox
                   checked={allSelected ? true : someSelected ? "indeterminate" : false}
@@ -98,7 +98,7 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
                 </TableHead>
               ))}
               <TableHead className="text-center font-semibold text-xs uppercase tracking-wider text-muted-foreground w-24">Statut</TableHead>
-              <TableHead className="w-28 text-right font-semibold text-xs uppercase tracking-wider text-muted-foreground pr-4 sticky right-0 bg-muted/40 z-10 border-l">Actions</TableHead>
+              <TableHead className="w-28 text-right font-semibold text-xs uppercase tracking-wider text-muted-foreground pr-4 sticky right-0 bg-muted/35 z-10 border-l">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -107,7 +107,7 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
               const productImage = item.product_images?.[0]?.image_url || item.image_url;
               const subCount = item.sub_products?.length || 0;
               return (
-                <TableRow key={item.id} className="group cursor-pointer hover:bg-muted/30 transition-colors border-b border-border/50" onClick={() => onViewDetail(item)}>
+                <TableRow key={item.id} className="group cursor-pointer hover:bg-muted/25 transition-colors border-b border-border/50" onClick={() => onViewDetail(item)}>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedIds.includes(item.id)}
@@ -193,7 +193,7 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
                     {subCount > 0 ? (
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{subCount}</Badge>
-                        <Button size="sm" variant="outline" onClick={() => onViewSubProducts(item)}>
+                        <Button size="sm" variant="outline" className="rounded-lg" onClick={() => onViewSubProducts(item)}>
                           Voir
                         </Button>
                       </div>
@@ -212,20 +212,20 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
                       <span className="text-xs font-medium">{status.label}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="pr-4 align-middle sticky right-0 bg-card z-10 border-l">
-                    <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                  <TableCell className="pr-4 align-middle sticky right-0 bg-card/95 backdrop-blur-sm z-10 border-l">
+                    <div className="flex gap-2 justify-end opacity-70 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-8 w-8 rounded-lg"
+                        className="h-8 w-8 rounded-lg border-border/70"
                         onClick={() => onEdit(item)}
                       >
                         <Edit2 className="h-3.5 w-3.5" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-8 w-8 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 rounded-lg border-border/70 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => onDelete(item.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

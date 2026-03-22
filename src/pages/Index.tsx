@@ -16,6 +16,7 @@ import { ClientManagement } from "@/components/ClientManagement";
 import { PaymentTrackingManager } from "@/components/PaymentTrackingManager";
 import { FournisseurSection } from "@/components/FournisseurSection";
 import { SubproductManager } from "@/components/SubproductManager";
+import { AdminAccountPanel } from "@/components/AdminAccountPanel";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -56,6 +57,7 @@ import {
   CreditCard,
   Trash2,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -68,7 +70,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const Index = () => {
+interface IndexProps {
+  adminEmail?: string;
+  onSignOut?: () => Promise<void>;
+}
+
+const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
   const {
     items,
     allItems,
@@ -259,7 +266,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Modern Header */}
-      <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60">
+      <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 shadow-[0_1px_0_hsl(var(--border))]">
         <div className="container py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -278,6 +285,12 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {onSignOut && (
+                <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={onSignOut}>
+                  <LogOut className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Deconnexion</span>
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2 text-xs">
@@ -371,32 +384,32 @@ const Index = () => {
       <main className="container max-w-[1900px] py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="flex items-center justify-between">
-            <TabsList className="h-11 p-1 bg-muted/60 backdrop-blur-sm rounded-xl">
-              <TabsTrigger value="stock" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+            <TabsList className="h-12 p-1 bg-card/70 border backdrop-blur-sm rounded-2xl shadow-sm">
+              <TabsTrigger value="stock" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
                 <Package className="h-4 w-4" />
                 <span className="hidden sm:inline">Stock</span>
               </TabsTrigger>
-              <TabsTrigger value="statistics" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+              <TabsTrigger value="statistics" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
                 <BarChart3 className="h-4 w-4" />
                 <span className="hidden sm:inline">Statistiques</span>
               </TabsTrigger>
-              <TabsTrigger value="clients" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+              <TabsTrigger value="clients" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Clients</span>
               </TabsTrigger>
-              <TabsTrigger value="payment-tracking" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+              <TabsTrigger value="payment-tracking" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
                 <CreditCard className="h-4 w-4" />
                 <span className="hidden sm:inline">Suivi Paiement</span>
               </TabsTrigger>
-              <TabsTrigger value="fournisseurs" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+              <TabsTrigger value="fournisseurs" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
                 <Truck className="h-4 w-4" />
                 <span className="hidden sm:inline">Fournisseurs</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+              <TabsTrigger value="settings" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">Paramètres</span>
               </TabsTrigger>
-              <TabsTrigger value="sub-products" className="gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm px-4 text-sm transition-all">
+              <TabsTrigger value="sub-products" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
                 <Package className="h-4 w-4" />
                 <span className="hidden sm:inline">Sous-produits</span>
               </TabsTrigger>
@@ -530,6 +543,9 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6 animate-in">
+            {onSignOut && (
+              <AdminAccountPanel adminEmail={adminEmail} onSignOut={onSignOut} />
+            )}
             <SiteSettingsPanel
               settings={settings}
               onUpdate={updateSetting}
