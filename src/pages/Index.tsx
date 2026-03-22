@@ -267,13 +267,13 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
     <div className="min-h-screen bg-background">
       {/* Modern Header */}
       <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 shadow-[0_1px_0_hsl(var(--border))]">
-        <div className="container py-4">
+        <div className="container py-3 sm:py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               {settings.logo_url ? (
-                <img src={settings.logo_url} alt="Logo" className="h-11 w-11 rounded-xl object-contain ring-1 ring-border" />
+                <img src={settings.logo_url} alt="Logo" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl object-contain ring-1 ring-border" />
               ) : (
-                <div className="h-11 w-11 rounded-xl gradient-primary flex items-center justify-center shadow-md shadow-primary/20">
+                <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl gradient-primary flex items-center justify-center shadow-md shadow-primary/20">
                   <Package className="h-5 w-5 text-white" />
                 </div>
               )}
@@ -342,7 +342,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
 
       {/* Hero Summary */}
       <div className="border-b bg-gradient-to-b from-card/50 to-background">
-        <div className="container py-5">
+        <div className="container py-4 sm:py-5">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="group relative overflow-hidden rounded-xl border bg-card/90 backdrop-blur-sm p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
               <div className="flex items-center gap-3">
@@ -381,10 +381,10 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
         </div>
       </div>
 
-      <main className="container max-w-[1900px] py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <main className="container max-w-[1900px] py-4 sm:py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
           <div className="flex items-center justify-between">
-            <TabsList className="h-12 p-1 bg-card/70 border backdrop-blur-sm rounded-2xl shadow-sm">
+            <TabsList className="h-12 p-1 bg-card/70 border backdrop-blur-sm rounded-2xl shadow-sm w-full justify-start overflow-x-auto whitespace-nowrap">
               <TabsTrigger value="stock" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
                 <Package className="h-4 w-4" />
                 <span className="hidden sm:inline">Stock</span>
@@ -470,7 +470,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
 
             {/* Table */}
             {selectedItemIds.length > 0 && (
-              <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2">
                 <p className="text-sm">
                   {selectedItemIds.length} produit(s) sélectionné(s)
                 </p>

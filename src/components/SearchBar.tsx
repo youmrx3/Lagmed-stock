@@ -83,7 +83,7 @@ export function SearchBar({
   };
 
   return (
-    <div className="rounded-2xl border bg-card/80 backdrop-blur-sm p-3 sm:p-4 shadow-sm space-y-3">
+    <div className="rounded-2xl border bg-card/80 backdrop-blur-sm p-2.5 sm:p-4 shadow-sm space-y-2.5 sm:space-y-3">
       {/* Main search row */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[220px] max-w-lg">
@@ -128,7 +128,7 @@ export function SearchBar({
       <div className="flex items-center gap-2 flex-wrap pt-1">
         {fournisseurs.length > 0 && onFilterFournisseurChange && (
           <Select value={filterFournisseurId} onValueChange={onFilterFournisseurChange}>
-            <SelectTrigger className="w-[170px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
+            <SelectTrigger className="w-[145px] sm:w-[170px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
               <SelectValue placeholder="Fournisseur" />
             </SelectTrigger>
             <SelectContent>
@@ -141,7 +141,7 @@ export function SearchBar({
         )}
         {categories.length > 0 && onFilterCategoryChange && (
           <Select value={filterCategoryId} onValueChange={onFilterCategoryChange}>
-            <SelectTrigger className="w-[170px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
+            <SelectTrigger className="w-[145px] sm:w-[170px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
             <SelectContent>
@@ -154,7 +154,7 @@ export function SearchBar({
         )}
         {brands.length > 0 && onFilterBrandChange && (
           <Select value={filterBrandId} onValueChange={onFilterBrandChange}>
-            <SelectTrigger className="w-[150px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
+            <SelectTrigger className="w-[132px] sm:w-[150px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
               <SelectValue placeholder="Marque" />
             </SelectTrigger>
             <SelectContent>
@@ -167,7 +167,7 @@ export function SearchBar({
         )}
         {origins.length > 0 && onFilterOriginChange && (
           <Select value={filterOriginId} onValueChange={onFilterOriginChange}>
-            <SelectTrigger className="w-[150px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
+            <SelectTrigger className="w-[132px] sm:w-[150px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
               <SelectValue placeholder="Origine" />
             </SelectTrigger>
             <SelectContent>
@@ -185,7 +185,7 @@ export function SearchBar({
               placeholder="Min"
               value={filterPriceMin}
               onChange={(e) => onFilterPriceMinChange(e.target.value)}
-              className="w-[100px] h-9 text-sm rounded-xl bg-background/85 border-border/70"
+              className="w-[84px] sm:w-[100px] h-9 text-sm rounded-xl bg-background/85 border-border/70"
               min={0}
             />
             <span className="text-muted-foreground text-xs">–</span>
@@ -194,7 +194,7 @@ export function SearchBar({
               placeholder="Max"
               value={filterPriceMax}
               onChange={(e) => onFilterPriceMaxChange(e.target.value)}
-              className="w-[100px] h-9 text-sm rounded-xl bg-background/85 border-border/70"
+              className="w-[84px] sm:w-[100px] h-9 text-sm rounded-xl bg-background/85 border-border/70"
               min={0}
             />
           </div>

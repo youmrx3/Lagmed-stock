@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Edit2, Trash2, Image as ImageIcon, Package } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StockTableProps {
   items: StockItem[];
@@ -30,6 +31,8 @@ function getStockStatus(remaining: number, quantity: number) {
 }
 
 export function StockTable({ items, customFields, selectedIds, onSelectionChange, onEdit, onDelete, onViewDetail, onViewSubProducts }: StockTableProps) {
+  const isMobile = useIsMobile();
+
   const formatPrice = (price: number | null) => {
     if (price === null) return "—";
     return new Intl.NumberFormat("fr-DZ", {
@@ -68,6 +71,108 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
 
   return (
     <div className="rounded-2xl border bg-card/90 backdrop-blur-sm overflow-hidden shadow-sm">
+      {isMobile ? (
+        <div className="p-3 space-y-3">
+          {items.length === 0 ? (
+            <div className="text-center py-10">
+              <div className="mx-auto h-11 w-11 rounded-xl bg-muted flex items-center justify-center">
+                <Package className="h-5 w-5 text-muted-foreground/50" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground mt-3">Aucun produit trouve</p>
+            </div>
+          ) : (
+            items.map((item) => {
+              const status = getStockStatus(item.remaining, item.quantity);
+              const productImage = item.product_images?.[0]?.image_url || item.image_url;
+              const subCount = item.sub_products?.length || 0;
+              const isSelected = selectedIds.includes(item.id);
+
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-xl border p-3 bg-background/70 space-y-3"
+                  onClick={() => onViewDetail(item)}
+                >
+                  <div className="flex items-start justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-start gap-3 min-w-0">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => handleToggleOne(item.id, checked)}
+                        aria-label={`Selectionner produit ${item.number}`}
+                      />
+                      {productImage ? (
+                        <img
+                          src={productImage}
+                          alt={item.description}
+                          className="w-12 h-12 object-cover rounded-lg border"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg border bg-muted/50 flex items-center justify-center">
+                          <ImageIcon className="h-4 w-4 text-muted-foreground/50" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm truncate">#{item.number} - {item.description}</p>
+                        <p className="text-xs text-muted-foreground truncate">Ref: {item.reference || "-"}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-xs">{status.label}</Badge>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                      <p className="text-muted-foreground">Qte</p>
+                      <p className="font-semibold">{item.quantity}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                      <p className="text-muted-foreground">Reserve</p>
+                      <p className="font-semibold">{item.reserved}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                      <p className="text-muted-foreground">Dispo</p>
+                      <p className="font-semibold">{item.remaining}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Prix HT</span>
+                    <span className="font-semibold">{formatPrice(item.price_ht)}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Sous-produits</span>
+                    <Badge variant="outline">{subCount}</Badge>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      variant="outline"
+                      className="h-10 rounded-lg"
+                      onClick={() => onEdit(item)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-10 rounded-lg"
+                      onClick={() => onViewSubProducts(item)}
+                    >
+                      Voir
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-10 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => onDelete(item.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : (
       <div className="overflow-hidden [&_th]:border-r [&_th]:border-border/60 [&_th:last-child]:border-r-0 [&_td]:border-r [&_td]:border-border/40 [&_td:last-child]:border-r-0">
         <Table className="w-full table-fixed">
           <TableHeader>
@@ -253,6 +358,7 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
           </TableBody>
         </Table>
       </div>
+      )}
     </div>
   );
 }
