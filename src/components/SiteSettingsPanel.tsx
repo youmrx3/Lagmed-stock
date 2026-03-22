@@ -79,7 +79,7 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
           {/* Logo */}
           <div className="space-y-2">
             <Label>Logo</Label>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               {settings.logo_url ? (
                 <div className="relative">
                   <img
@@ -160,7 +160,7 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
               />
             </div>
           </div>
-          <Button onClick={handleSaveCompany} size="sm" className="rounded-lg">
+          <Button onClick={handleSaveCompany} size="sm" className="rounded-lg w-full sm:w-auto">
             Enregistrer
           </Button>
         </div>
@@ -190,7 +190,7 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
               </p>
             </div>
           </div>
-          <Button onClick={handleSaveThreshold} size="sm" className="rounded-lg">
+          <Button onClick={handleSaveThreshold} size="sm" className="rounded-lg w-full sm:w-auto">
             Enregistrer
           </Button>
         </div>

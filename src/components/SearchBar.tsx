@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, X } from "lucide-react";
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Brand, Origin, Fournisseur, Category } from "@/types/stock";
 
 interface SearchBarProps {
@@ -62,6 +64,9 @@ export function SearchBar({
   filterPriceMax = "",
   onFilterPriceMaxChange,
 }: SearchBarProps) {
+  const isMobile = useIsMobile();
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   const filterLabels = {
     all: "Tous",
     "in-stock": "En stock",
@@ -85,8 +90,8 @@ export function SearchBar({
   return (
     <div className="rounded-2xl border bg-card/80 backdrop-blur-sm p-2.5 sm:p-4 shadow-sm space-y-2.5 sm:space-y-3">
       {/* Main search row */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[220px] max-w-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="relative w-full sm:flex-1 sm:min-w-[220px] sm:max-w-lg">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Rechercher par nom, référence, fournisseur..."
@@ -95,40 +100,56 @@ export function SearchBar({
             className="pl-10 h-10 bg-background/85 border-border/70"
           />
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-2 h-10 px-4 border-border/70 bg-background/80">
-              <Filter className="h-3.5 w-3.5" />
-              <span className="text-sm">{filterLabels[filterStatus]}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[180px]">
-            <DropdownMenuRadioGroup
-              value={filterStatus}
-              onValueChange={(value) =>
-                onFilterChange(value as typeof filterStatus)
-              }
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 h-10 px-3 sm:px-4 border-border/70 bg-background/80">
+                <Filter className="h-3.5 w-3.5" />
+                <span className="text-sm">{filterLabels[filterStatus]}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[180px]">
+              <DropdownMenuRadioGroup
+                value={filterStatus}
+                onValueChange={(value) =>
+                  onFilterChange(value as typeof filterStatus)
+                }
+              >
+                <DropdownMenuRadioItem value="all">Tous les produits</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="in-stock">En stock</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="low-stock">Stock bas</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="out-of-stock">Rupture de stock</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {isMobile && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-xl text-xs"
+              onClick={() => setShowAdvancedFilters((prev) => !prev)}
             >
-              <DropdownMenuRadioItem value="all">Tous les produits</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="in-stock">En stock</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="low-stock">Stock bas</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="out-of-stock">Rupture de stock</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        {hasAdvancedFilters && (
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-destructive h-10 rounded-xl" onClick={clearAllFilters}>
-            <X className="h-3.5 w-3.5" />
-            Effacer
-          </Button>
-        )}
+              {showAdvancedFilters ? "Masquer filtres" : "Plus de filtres"}
+            </Button>
+          )}
+
+          {hasAdvancedFilters && (
+            <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground hover:text-destructive h-10 rounded-xl" onClick={clearAllFilters}>
+              <X className="h-3.5 w-3.5" />
+              Effacer
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Advanced Filters Row */}
-      <div className="flex items-center gap-2 flex-wrap pt-1">
+      {(!isMobile || showAdvancedFilters) && (
+      <div className="grid grid-cols-1 sm:flex sm:items-center gap-2 flex-wrap pt-1">
         {fournisseurs.length > 0 && onFilterFournisseurChange && (
           <Select value={filterFournisseurId} onValueChange={onFilterFournisseurChange}>
-            <SelectTrigger className="w-[145px] sm:w-[170px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
+            <SelectTrigger className="w-full sm:w-[170px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
               <SelectValue placeholder="Fournisseur" />
             </SelectTrigger>
             <SelectContent>
@@ -141,7 +162,7 @@ export function SearchBar({
         )}
         {categories.length > 0 && onFilterCategoryChange && (
           <Select value={filterCategoryId} onValueChange={onFilterCategoryChange}>
-            <SelectTrigger className="w-[145px] sm:w-[170px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
+            <SelectTrigger className="w-full sm:w-[170px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
               <SelectValue placeholder="Catégorie" />
             </SelectTrigger>
             <SelectContent>
@@ -154,7 +175,7 @@ export function SearchBar({
         )}
         {brands.length > 0 && onFilterBrandChange && (
           <Select value={filterBrandId} onValueChange={onFilterBrandChange}>
-            <SelectTrigger className="w-[132px] sm:w-[150px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
+            <SelectTrigger className="w-full sm:w-[150px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
               <SelectValue placeholder="Marque" />
             </SelectTrigger>
             <SelectContent>
@@ -167,7 +188,7 @@ export function SearchBar({
         )}
         {origins.length > 0 && onFilterOriginChange && (
           <Select value={filterOriginId} onValueChange={onFilterOriginChange}>
-            <SelectTrigger className="w-[132px] sm:w-[150px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
+            <SelectTrigger className="w-full sm:w-[150px] h-9 text-sm rounded-xl bg-background/85 border-border/70">
               <SelectValue placeholder="Origine" />
             </SelectTrigger>
             <SelectContent>
@@ -179,27 +200,28 @@ export function SearchBar({
           </Select>
         )}
         {onFilterPriceMinChange && onFilterPriceMaxChange && (
-          <div className="flex items-center gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto sm:flex sm:items-center">
             <Input
               type="number"
               placeholder="Min"
               value={filterPriceMin}
               onChange={(e) => onFilterPriceMinChange(e.target.value)}
-              className="w-[84px] sm:w-[100px] h-9 text-sm rounded-xl bg-background/85 border-border/70"
+              className="w-full sm:w-[100px] h-9 text-sm rounded-xl bg-background/85 border-border/70"
               min={0}
             />
-            <span className="text-muted-foreground text-xs">–</span>
+            <span className="hidden sm:inline text-muted-foreground text-xs">–</span>
             <Input
               type="number"
               placeholder="Max"
               value={filterPriceMax}
               onChange={(e) => onFilterPriceMaxChange(e.target.value)}
-              className="w-[84px] sm:w-[100px] h-9 text-sm rounded-xl bg-background/85 border-border/70"
+              className="w-full sm:w-[100px] h-9 text-sm rounded-xl bg-background/85 border-border/70"
               min={0}
             />
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -40,7 +40,9 @@ function formatMoney(value: number, currency: string) {
     style: "currency",
     currency,
     minimumFractionDigits: 0,
-  }).format(value);
+  })
+    .format(value)
+    .replace(/[\u00A0\u202F]/g, " ");
 }
 
 export function ClientManagement({
@@ -192,16 +194,16 @@ export function ClientManagement({
   return (
     <div className="space-y-6">
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
                 <Users className="h-6 w-6 text-blue-600" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">Total Clients</p>
-                <p className="text-2xl font-bold">{overallMetrics.totalClients}</p>
+                <p className="text-xl sm:text-2xl font-bold leading-tight break-all">{overallMetrics.totalClients}</p>
               </div>
             </div>
           </CardContent>
@@ -213,9 +215,9 @@ export function ClientManagement({
               <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
                 <Package className="h-6 w-6 text-green-600" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">Total Suivis</p>
-                <p className="text-2xl font-bold">{overallMetrics.totalTrackings}</p>
+                <p className="text-xl sm:text-2xl font-bold leading-tight break-all">{overallMetrics.totalTrackings}</p>
               </div>
             </div>
           </CardContent>
@@ -227,9 +229,9 @@ export function ClientManagement({
               <div className="h-12 w-12 rounded-lg bg-amber-100 flex items-center justify-center">
                 <FileText className="h-6 w-6 text-amber-600" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">Total suivi</p>
-                <p className="text-2xl font-bold">{formatMoney(overallMetrics.totalTrackedAmount || overallMetrics.totalRevenue, currency)}</p>
+                <p className="text-sm sm:text-xl font-bold leading-tight break-all">{formatMoney(overallMetrics.totalTrackedAmount || overallMetrics.totalRevenue, currency)}</p>
               </div>
             </div>
           </CardContent>
@@ -241,9 +243,9 @@ export function ClientManagement({
               <div className="h-12 w-12 rounded-lg bg-emerald-100 flex items-center justify-center">
                 <FileText className="h-6 w-6 text-emerald-700" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-muted-foreground">Reste à encaisser</p>
-                <p className="text-2xl font-bold">{formatMoney(overallMetrics.totalRemainingAmount, currency)}</p>
+                <p className="text-sm sm:text-xl font-bold leading-tight break-all">{formatMoney(overallMetrics.totalRemainingAmount, currency)}</p>
               </div>
             </div>
           </CardContent>
@@ -251,7 +253,7 @@ export function ClientManagement({
       </div>
 
       {/* Search and Add Button */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -285,7 +287,7 @@ export function ClientManagement({
                 setDetailsOpen(true);
               }}>
                 <CardContent className="pt-4">
-                  <div className="flex items-start justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="flex-1">
                       <h3 className="font-semibold text-base mb-2">{client.name}</h3>
                       <div className="space-y-1">
@@ -310,12 +312,12 @@ export function ClientManagement({
                       </div>
                     </div>
 
-                    <div className="ml-4 text-right space-y-2">
-                      <div className="flex gap-2 justify-end flex-wrap">
+                    <div className="sm:ml-4 sm:text-right space-y-2">
+                      <div className="flex gap-2 sm:justify-end flex-wrap">
                         <Badge variant="outline" className="font-semibold">
                           {trackingMetrics.count} suivi{trackingMetrics.count !== 1 ? "s" : ""}
                         </Badge>
-                        <Badge className="bg-amber-100 text-amber-900 font-semibold">
+                        <Badge className="bg-amber-100 text-amber-900 font-semibold max-w-full break-all text-left">
                           {formatMoney(trackingMetrics.totalTracked, currency)}
                         </Badge>
                         {trackingMetrics.pendingCount > 0 && (
@@ -325,7 +327,7 @@ export function ClientManagement({
                         )}
                       </div>
                       {trackingMetrics.payments.length > 0 && (
-                        <div className="text-xs text-muted-foreground space-y-1 mt-2 text-right">
+                        <div className="text-xs text-muted-foreground space-y-1 mt-2 sm:text-right break-all">
                           {trackingMetrics.payments.slice(0, 2).map((payment) => (
                             <p key={payment.id}>
                               {payment.sub_product_id
@@ -337,12 +339,12 @@ export function ClientManagement({
                           ))}
                         </div>
                       )}
-                      <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex gap-2 sm:justify-end" onClick={(e) => e.stopPropagation()}>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleOpenForm(client)}
-                          className="h-8 px-2"
+                          className="h-9 w-9 px-0"
                         >
                           <Edit className="h-3.5 w-3.5" />
                         </Button>
@@ -353,7 +355,7 @@ export function ClientManagement({
                             setDeleteTarget(client);
                             setDeleteOpen(true);
                           }}
-                          className="h-8 px-2 text-destructive hover:text-destructive"
+                          className="h-9 w-9 px-0 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -369,7 +371,7 @@ export function ClientManagement({
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className="w-[95vw] sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle>{editingClient ? "Modifier Client" : "Ajouter Client"}</DialogTitle>
           </DialogHeader>
@@ -432,13 +434,13 @@ export function ClientManagement({
       {/* Client Details Dialog */}
       {selectedClient && (
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="w-[95vw] sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>{selectedClient.name}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-muted-foreground uppercase tracking-wide">Email</p>
                   <p className="text-sm font-medium mt-1">{selectedClient.email || "—"}</p>
@@ -463,22 +465,22 @@ export function ClientManagement({
 
               <div>
                 <h4 className="font-semibold mb-3">Statistiques</h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground">Suivis enregistrés</p>
                     <p className="text-2xl font-bold mt-1">{getClientTrackingMetrics(selectedClient.id).count}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground">Montant suivi</p>
-                    <p className="text-lg font-bold mt-1">{formatMoney(getClientTrackingMetrics(selectedClient.id).totalTracked, currency)}</p>
+                    <p className="text-base sm:text-lg font-bold mt-1 leading-tight break-all">{formatMoney(getClientTrackingMetrics(selectedClient.id).totalTracked, currency)}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground">Montant versé</p>
-                    <p className="text-lg font-bold mt-1 text-green-700">{formatMoney(getClientTrackingMetrics(selectedClient.id).totalPaid, currency)}</p>
+                    <p className="text-base sm:text-lg font-bold mt-1 text-green-700 leading-tight break-all">{formatMoney(getClientTrackingMetrics(selectedClient.id).totalPaid, currency)}</p>
                   </div>
                   <div className="p-3 bg-muted rounded-lg">
                     <p className="text-xs text-muted-foreground">Reste</p>
-                    <p className="text-lg font-bold mt-1 text-orange-700">{formatMoney(getClientTrackingMetrics(selectedClient.id).remaining, currency)}</p>
+                    <p className="text-base sm:text-lg font-bold mt-1 text-orange-700 leading-tight break-all">{formatMoney(getClientTrackingMetrics(selectedClient.id).remaining, currency)}</p>
                   </div>
                 </div>
               </div>
@@ -495,7 +497,7 @@ export function ClientManagement({
                             <p className="font-medium">{item.description}</p>
                             <p className="text-xs text-muted-foreground">Qté: {item.quantity}</p>
                           </div>
-                          <p className="font-semibold">{formatMoney((item.price_ht || 0) * item.quantity, currency)}</p>
+                          <p className="font-semibold text-right break-all">{formatMoney((item.price_ht || 0) * item.quantity, currency)}</p>
                         </div>
                       ))}
                     </div>
@@ -537,10 +539,10 @@ export function ClientManagement({
                                   : "En attente"}
                               </Badge>
                             </div>
-                            <div className="grid grid-cols-3 gap-2 text-xs">
-                              <p>Total: <span className="font-semibold">{formatMoney(total, currency)}</span></p>
-                              <p>Versé: <span className="font-semibold text-green-700">{formatMoney(paid, currency)}</span></p>
-                              <p>Reste: <span className="font-semibold text-orange-700">{formatMoney(remaining, currency)}</span></p>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                              <p className="break-all">Total: <span className="font-semibold">{formatMoney(total, currency)}</span></p>
+                              <p className="break-all">Versé: <span className="font-semibold text-green-700">{formatMoney(paid, currency)}</span></p>
+                              <p className="break-all">Reste: <span className="font-semibold text-orange-700">{formatMoney(remaining, currency)}</span></p>
                             </div>
                             {payment.notes && (
                               <p className="text-xs text-muted-foreground">Note: {payment.notes}</p>

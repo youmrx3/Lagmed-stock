@@ -77,7 +77,7 @@ function EntityManager({ title, icon, items, onAdd, onUpdate, onDelete }: Entity
       <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
         <div className="p-4 sm:p-5 border-b bg-muted/30 flex items-center justify-between">
           <h3 className="font-semibold text-sm">{title}</h3>
-          <Button size="sm" className="rounded-lg h-8 text-xs" onClick={openAdd}>
+          <Button size="sm" className="rounded-lg h-9 text-xs" onClick={openAdd}>
             <Plus className="h-3.5 w-3.5 mr-1" />
             Ajouter
           </Button>
@@ -99,14 +99,14 @@ function EntityManager({ title, icon, items, onAdd, onUpdate, onDelete }: Entity
                     )}
                     <p className="font-medium truncate">{entity.name}</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(entity)}>
+                  <div className="flex items-center gap-1.5">
+                    <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg" onClick={() => openEdit(entity)}>
                       <Edit2 className="h-3.5 w-3.5" />
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      className="h-9 w-9 rounded-lg text-destructive hover:text-destructive"
                       onClick={() => onDelete(entity.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -120,7 +120,7 @@ function EntityManager({ title, icon, items, onAdd, onUpdate, onDelete }: Entity
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[420px]">
+        <DialogContent className="w-[95vw] sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle>{editing ? `Modifier ${title}` : `Ajouter ${title}`}</DialogTitle>
           </DialogHeader>

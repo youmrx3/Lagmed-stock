@@ -145,7 +145,7 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="h-12 w-12 border-2 border-dashed rounded-md flex items-center justify-center"
+                  className="h-12 w-12 border-2 border-dashed rounded-lg flex items-center justify-center"
                   disabled={uploading}
                 >
                   {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
@@ -202,11 +202,11 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                         onChange={(e) => handleUpload(true, e.target.files?.[0])}
                       />
                     </div>
-                    <Button onClick={handleSaveEdit} disabled={loading}>Enregistrer</Button>
-                    <Button variant="outline" onClick={() => setEditingId(null)}>Annuler</Button>
+                    <Button onClick={handleSaveEdit} disabled={loading} className="h-10">Enregistrer</Button>
+                    <Button variant="outline" onClick={() => setEditingId(null)} className="h-10">Annuler</Button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-3">
                       {category.image_url ? (
                         <img src={category.image_url} alt={category.name} className="h-9 w-9 rounded-md border object-cover" />
@@ -214,21 +214,18 @@ export function CategoryManager({ categories, onAdd, onUpdate, onDelete }: Categ
                         <div className="h-9 w-9 rounded-md border bg-muted" />
                       )}
                       <div>
-                      <p className="font-medium">{category.name}</p>
-                      {category.image_url && (
-                        <p className="text-xs text-muted-foreground truncate max-w-[420px]">{category.image_url}</p>
-                      )}
+                        <p className="font-medium">{category.name}</p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleStartEdit(category)}>
+                    <div className="flex gap-2 sm:self-auto self-end">
+                      <Button variant="outline" size="sm" className="h-9 w-9 px-0" onClick={() => handleStartEdit(category)}>
                         <Pencil size={14} />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-9 w-9 px-0 text-destructive hover:text-destructive"
                         onClick={() => handleDelete(category.id)}
-                        className="text-destructive hover:text-destructive"
                       >
                         <Trash2 size={14} />
                       </Button>

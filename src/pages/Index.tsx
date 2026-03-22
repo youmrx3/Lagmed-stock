@@ -35,6 +35,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StockItem } from "@/types/stock";
 import { exportProductsToExcel, exportProductsToExcelDetailed, exportCatalogPdf } from "@/lib/exports";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Package,
   PackageCheck,
@@ -58,6 +59,8 @@ import {
   Trash2,
   ArrowLeft,
   LogOut,
+  Home,
+  Sparkles,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -76,6 +79,7 @@ interface IndexProps {
 }
 
 const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
+  const isMobile = useIsMobile();
   const {
     items,
     allItems,
@@ -134,6 +138,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState("stock");
+  const [settingsAnchor, setSettingsAnchor] = useState<"categories" | null>(null);
   const [subProductsProductId, setSubProductsProductId] = useState<string | null>(null);
   const [detailItem, setDetailItem] = useState<StockItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -221,6 +226,23 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
     }
   }, [allItems, detailItem]);
 
+  useEffect(() => {
+    if (activeTab !== "settings" || !settingsAnchor) return;
+
+    const targetId = settingsAnchor === "categories" ? "settings-categories-section" : null;
+    if (!targetId) return;
+
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      setSettingsAnchor(null);
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [activeTab, settingsAnchor]);
+
   const handleAddNew = () => {
     setEditingItem(null);
     setDialogOpen(true);
@@ -268,7 +290,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
       {/* Modern Header */}
       <header className="sticky top-0 z-20 border-b bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 shadow-[0_1px_0_hsl(var(--border))]">
         <div className="container py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-4">
               {settings.logo_url ? (
                 <img src={settings.logo_url} alt="Logo" className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl object-contain ring-1 ring-border" />
@@ -284,18 +306,18 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-1.5 sm:gap-2 w-full sm:w-auto">
               {onSignOut && (
-                <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={onSignOut}>
+                <Button variant="outline" size="sm" className="gap-2 text-xs px-2 sm:px-3" onClick={onSignOut}>
                   <LogOut className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Deconnexion</span>
                 </Button>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 text-xs">
+                  <Button variant="outline" size="sm" className="gap-2 text-xs px-2 sm:px-3">
                     <Download className="h-3.5 w-3.5" />
-                    <span className="hidden sm:inline">Export</span>
+                    <span className="hidden md:inline">Export</span>
                     <ChevronDown className="h-3.5 w-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -331,7 +353,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button onClick={handleAddNew} size="sm" className="gap-2 gradient-primary border-0 text-white shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transition-all">
+              <Button onClick={handleAddNew} size="sm" className="gap-2 gradient-primary border-0 text-white shadow-md shadow-primary/25 hover:shadow-lg hover:shadow-primary/30 transition-all px-2 sm:px-3">
                 <Plus className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Nouveau produit</span>
               </Button>
@@ -381,40 +403,91 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
         </div>
       </div>
 
-      <main className="container max-w-[1900px] py-4 sm:py-6">
+      <main className="container max-w-[1900px] py-4 sm:py-6 pb-28 md:pb-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-          <div className="flex items-center justify-between">
-            <TabsList className="h-12 p-1 bg-card/70 border backdrop-blur-sm rounded-2xl shadow-sm w-full justify-start overflow-x-auto whitespace-nowrap">
-              <TabsTrigger value="stock" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
+          {isMobile ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2 rounded-2xl border bg-card/70 p-2">
+                <p className="text-xs text-muted-foreground">Section active</p>
+                <p className="text-sm font-semibold">
+                  {activeTab === "stock" && "Stock"}
+                  {activeTab === "statistics" && "Statistiques"}
+                  {activeTab === "clients" && "Clients"}
+                  {activeTab === "payment-tracking" && "Suivi Paiement"}
+                  {activeTab === "fournisseurs" && "Fournisseurs"}
+                  {activeTab === "settings" && "Paramètres"}
+                  {activeTab === "sub-products" && "Sous-produits"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                <Button
+                  variant={activeTab === "statistics" ? "default" : "outline"}
+                  size="sm"
+                  className="h-9 rounded-xl text-xs shrink-0"
+                  onClick={() => setActiveTab("statistics")}
+                >
+                  <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                  Stats
+                </Button>
+                <Button
+                  variant={activeTab === "sub-products" ? "default" : "outline"}
+                  size="sm"
+                  className="h-9 rounded-xl text-xs shrink-0"
+                  onClick={() => setActiveTab("sub-products")}
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                  Sous-produits
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-xl text-xs shrink-0"
+                  onClick={() => {
+                    setActiveTab("settings");
+                    setSettingsAnchor("categories");
+                  }}
+                >
+                  Lien Catégories
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground px-1">
+                Clients: {clients.length} • Suivi: {paymentTrackings.length}
+              </p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <TabsList className="h-12 p-1 bg-card/70 border backdrop-blur-sm rounded-2xl shadow-sm w-full justify-start overflow-x-auto whitespace-nowrap">
+              <TabsTrigger value="stock" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-3 sm:px-4 text-xs sm:text-sm transition-all">
                 <Package className="h-4 w-4" />
-                <span className="hidden sm:inline">Stock</span>
+                <span>Stock</span>
               </TabsTrigger>
-              <TabsTrigger value="statistics" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
+              <TabsTrigger value="statistics" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-3 sm:px-4 text-xs sm:text-sm transition-all">
                 <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Statistiques</span>
+                <span>{isMobile ? "Stats" : "Statistiques"}</span>
               </TabsTrigger>
-              <TabsTrigger value="clients" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
+              <TabsTrigger value="clients" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-3 sm:px-4 text-xs sm:text-sm transition-all">
                 <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Clients</span>
+                <span>Clients</span>
               </TabsTrigger>
-              <TabsTrigger value="payment-tracking" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
+              <TabsTrigger value="payment-tracking" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-3 sm:px-4 text-xs sm:text-sm transition-all">
                 <CreditCard className="h-4 w-4" />
-                <span className="hidden sm:inline">Suivi Paiement</span>
+                <span>{isMobile ? "Suivi" : "Suivi Paiement"}</span>
               </TabsTrigger>
-              <TabsTrigger value="fournisseurs" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
+              <TabsTrigger value="fournisseurs" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-3 sm:px-4 text-xs sm:text-sm transition-all">
                 <Truck className="h-4 w-4" />
-                <span className="hidden sm:inline">Fournisseurs</span>
+                <span>{isMobile ? "Fourn." : "Fournisseurs"}</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
+              <TabsTrigger value="settings" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-3 sm:px-4 text-xs sm:text-sm transition-all">
                 <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Paramètres</span>
+                <span>{isMobile ? "Reglages" : "Paramètres"}</span>
               </TabsTrigger>
-              <TabsTrigger value="sub-products" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-4 text-sm transition-all">
+              <TabsTrigger value="sub-products" className="gap-2 rounded-xl data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/70 px-3 sm:px-4 text-xs sm:text-sm transition-all">
                 <Package className="h-4 w-4" />
-                <span className="hidden sm:inline">Sous-produits</span>
+                <span>{isMobile ? "Sous-prod" : "Sous-produits"}</span>
               </TabsTrigger>
-            </TabsList>
-          </div>
+              </TabsList>
+            </div>
+          )}
 
           <TabsContent value="stock" className="space-y-6 animate-in">
             {/* Stats Cards */}
@@ -506,7 +579,13 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
           </TabsContent>
 
           <TabsContent value="statistics" className="animate-in">
-            <StatisticsPanel stats={stats} items={allItems} />
+            <StatisticsPanel
+              stats={stats}
+              items={allItems}
+              clients={clients}
+              paymentTrackings={paymentTrackings}
+              currency={settings.currency}
+            />
           </TabsContent>
 
           <TabsContent value="clients" className="space-y-6 animate-in">
@@ -568,12 +647,14 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
               onUpdateOrigin={updateOrigin}
               onDeleteOrigin={deleteOrigin}
             />
-            <CategoryManager
-              categories={categories}
-              onAdd={addCategory}
-              onUpdate={updateCategory}
-              onDelete={deleteCategory}
-            />
+            <div id="settings-categories-section">
+              <CategoryManager
+                categories={categories}
+                onAdd={addCategory}
+                onUpdate={updateCategory}
+                onDelete={deleteCategory}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="sub-products" className="space-y-6 animate-in">
@@ -629,6 +710,44 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
                   Sélectionnez un produit pour afficher et gérer ses sous-produits.
                 </div>
               )}
+
+              <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+                <div className="p-4 sm:p-5 border-b bg-muted/30 flex items-center justify-between gap-2">
+                  <h3 className="font-semibold text-sm">Détails Produits et Sous-produits</h3>
+                  <p className="text-xs text-muted-foreground">{allItems.length} produits • {stats.totalSubProducts} sous-produits</p>
+                </div>
+                <div className="p-4 sm:p-5">
+                  {allItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Aucun produit disponible</p>
+                  ) : (
+                    <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                      {allItems.map((item) => (
+                        <div key={item.id} className="rounded-lg border p-3 bg-background">
+                          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                            <p className="font-medium text-sm">#{item.number} - {item.description}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Qté: {item.quantity} • Réservé: {item.reserved} • Reste: {item.remaining}
+                            </p>
+                          </div>
+
+                          {(item.sub_products || []).length > 0 ? (
+                            <div className="space-y-1.5">
+                              {item.sub_products?.map((sp) => (
+                                <div key={sp.id} className="text-xs rounded-md bg-muted/50 px-2 py-1.5 flex items-center justify-between gap-2">
+                                  <span>{sp.name}</span>
+                                  <span className="text-muted-foreground">Qté: {sp.quantity} • Prix: {formatCurrency(sp.price || 0)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Aucun sous-produit</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -714,6 +833,58 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
         onUpdateSubProduct={updateSubProduct}
         onDeleteSubProduct={deleteSubProduct}
       />
+
+      {isMobile && (
+        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md shadow-[0_-10px_30px_rgba(0,0,0,0.10)] px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] md:hidden">
+          <div className="grid grid-cols-5 gap-1">
+            <Button
+              variant={activeTab === "stock" ? "default" : "ghost"}
+              size="sm"
+              className="h-12 rounded-xl text-[10px] flex flex-col gap-0.5"
+              onClick={() => setActiveTab("stock")}
+            >
+              <Home className="h-4 w-4" />
+              <span>Stock</span>
+            </Button>
+            <Button
+              variant={activeTab === "clients" ? "default" : "ghost"}
+              size="sm"
+              className="h-12 rounded-xl text-[10px] flex flex-col gap-0.5"
+              onClick={() => setActiveTab("clients")}
+            >
+              <Users className="h-4 w-4" />
+              <span>Clients</span>
+            </Button>
+            <Button
+              variant={activeTab === "payment-tracking" ? "default" : "ghost"}
+              size="sm"
+              className="h-12 rounded-xl text-[10px] flex flex-col gap-0.5"
+              onClick={() => setActiveTab("payment-tracking")}
+            >
+              <CreditCard className="h-4 w-4" />
+              <span>Suivi</span>
+            </Button>
+            <Button
+              variant={activeTab === "fournisseurs" ? "default" : "ghost"}
+              size="sm"
+              className="h-12 rounded-xl text-[10px] flex flex-col gap-0.5"
+              onClick={() => setActiveTab("fournisseurs")}
+            >
+              <Truck className="h-4 w-4" />
+              <span>Fourn.</span>
+            </Button>
+            <Button
+              variant={activeTab === "settings" ? "default" : "ghost"}
+              size="sm"
+              className="h-12 rounded-xl text-[10px] flex flex-col gap-0.5"
+              onClick={() => setActiveTab("settings")}
+            >
+              <Settings className="h-4 w-4" />
+              <span>Reglages</span>
+            </Button>
+          </div>
+        </nav>
+      )}
     </div>
   );
 };

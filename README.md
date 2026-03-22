@@ -71,3 +71,67 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Weekly Supabase Backup (Automated)
+
+This repository now includes an automated weekly backup workflow:
+
+- Workflow file: [.github/workflows/weekly-supabase-backup.yml](.github/workflows/weekly-supabase-backup.yml)
+- Schedule: every Sunday at 02:00 UTC
+- Trigger: scheduled + manual run from GitHub Actions
+- Output:
+	- Full database dump in PostgreSQL custom format (`.dump`)
+	- Schema-only SQL dump (`.sql.gz`)
+	- SHA256 checksums (`SHA256SUMS.txt`)
+
+### 1. Configure GitHub Secrets
+
+Go to GitHub repository settings:
+
+- Settings -> Secrets and variables -> Actions -> New repository secret
+
+Required secret:
+
+- `SUPABASE_DB_URL`
+	- Use your Supabase Postgres connection string (transaction/session mode) with password.
+
+Optional secrets for off-GitHub storage (recommended):
+
+- `BACKUP_AWS_ACCESS_KEY_ID`
+- `BACKUP_AWS_SECRET_ACCESS_KEY`
+- `BACKUP_AWS_REGION`
+- `BACKUP_S3_BUCKET`
+
+If optional S3 secrets are provided, each weekly backup is also uploaded to your bucket.
+
+### 2. Run backup manually (any time)
+
+1. Open GitHub -> Actions
+2. Select "Weekly Supabase Backup"
+3. Click "Run workflow"
+
+### 3. Restore from a backup
+
+Restore into a safe target database first (recommended test project):
+
+```bash
+pg_restore \
+	--clean \
+	--if-exists \
+	--no-owner \
+	--no-privileges \
+	--dbname="<TARGET_DATABASE_URL>" \
+	supabase-weekly-<id>.dump
+```
+
+Verify data after restore:
+
+- Stock tables
+- Clients
+- Payment tracking
+- Storage object links
+
+### 4. Storage files note
+
+Database backups do not include binary files in Supabase Storage buckets (images/documents).
+For full disaster recovery, also back up Supabase Storage objects on a schedule.

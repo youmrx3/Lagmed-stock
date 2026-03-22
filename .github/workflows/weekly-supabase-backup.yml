@@ -1,0 +1,81 @@
+name: Weekly Supabase Backup
+
+on:
+  schedule:
+    # Every Sunday at 02:00 UTC
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      BACKUP_DIR: backups
+      BACKUP_TS: ${{ github.run_id }}-${{ github.run_number }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secret
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "SUPABASE_DB_URL is missing. Add it in repository secrets."
+            exit 1
+          fi
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Prepare backup directory
+        run: |
+          mkdir -p "$BACKUP_DIR"
+
+      - name: Dump full database (custom format)
+        run: |
+          pg_dump \
+            --dbname="$SUPABASE_DB_URL" \
+            --format=custom \
+            --no-owner \
+            --no-privileges \
+            --file="$BACKUP_DIR/supabase-weekly-${BACKUP_TS}.dump"
+
+      - name: Dump schema (plain SQL)
+        run: |
+          pg_dump \
+            --dbname="$SUPABASE_DB_URL" \
+            --schema-only \
+            --no-owner \
+            --no-privileges \
+            --file="$BACKUP_DIR/supabase-schema-weekly-${BACKUP_TS}.sql"
+
+      - name: Compress schema dump
+        run: |
+          gzip -f "$BACKUP_DIR/supabase-schema-weekly-${BACKUP_TS}.sql"
+
+      - name: Generate checksums
+        run: |
+          sha256sum "$BACKUP_DIR"/* > "$BACKUP_DIR/SHA256SUMS.txt"
+
+      - name: Upload weekly backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-weekly-backup-${{ env.BACKUP_TS }}
+          path: backups/
+          retention-days: 90
+
+      - name: Optional upload to S3-compatible storage
+        if: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID != '' && secrets.BACKUP_AWS_SECRET_ACCESS_KEY != '' && secrets.BACKUP_AWS_REGION != '' && secrets.BACKUP_S3_BUCKET != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+          BACKUP_S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+        run: |
+          aws s3 cp "$BACKUP_DIR" "s3://$BACKUP_S3_BUCKET/supabase-weekly/${{ github.repository }}/$BACKUP_TS/" --recursive --sse AES256

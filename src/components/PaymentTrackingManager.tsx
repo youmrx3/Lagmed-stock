@@ -82,7 +82,9 @@ export function PaymentTrackingManager({
       style: "currency",
       currency: currency,
       minimumFractionDigits: 0,
-    }).format(value);
+    })
+      .format(value)
+      .replace(/[\u00A0\u202F]/g, " ");
 
   const selectedProduct = items.find((item) => item.id === selectedProductId);
   const selectedSubProduct = selectedProduct?.sub_products?.find(
@@ -548,16 +550,16 @@ export function PaymentTrackingManager({
 
       {/* Statistics Cards */}
       {enrichedRecords.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
                   <TrendingUp className="h-5 w-5 text-blue-600" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Total inscrit</p>
-                  <p className="text-lg font-bold">{formatCurrency(totalWillingToPay)}</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground truncate">Total inscrit</p>
+                  <p className="text-sm sm:text-lg font-bold leading-tight break-all">{formatCurrency(totalWillingToPay)}</p>
                 </div>
               </div>
             </CardContent>
@@ -569,9 +571,9 @@ export function PaymentTrackingManager({
                 <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Total versé</p>
-                  <p className="text-lg font-bold">{formatCurrency(totalPaid)}</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground truncate">Total versé</p>
+                  <p className="text-sm sm:text-lg font-bold leading-tight break-all">{formatCurrency(totalPaid)}</p>
                 </div>
               </div>
             </CardContent>
@@ -583,9 +585,9 @@ export function PaymentTrackingManager({
                 <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
                   <Clock className="h-5 w-5 text-orange-600" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">À verser</p>
-                  <p className="text-lg font-bold">{formatCurrency(totalRemaining)}</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground truncate">À verser</p>
+                  <p className="text-sm sm:text-lg font-bold leading-tight break-all">{formatCurrency(totalRemaining)}</p>
                 </div>
               </div>
             </CardContent>
@@ -597,9 +599,9 @@ export function PaymentTrackingManager({
                 <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
                   <TrendingUp className="h-5 w-5 text-purple-600" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Enregistrements</p>
-                  <p className="text-lg font-bold">{enrichedRecords.length}</p>
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground truncate">Enregistrements</p>
+                  <p className="text-sm sm:text-lg font-bold leading-tight break-all">{enrichedRecords.length}</p>
                 </div>
               </div>
             </CardContent>
@@ -610,12 +612,12 @@ export function PaymentTrackingManager({
       {/* Payment Records by Status */}
       {enrichedRecords.length > 0 ? (
         <Tabs defaultValue="all" className="space-y-4">
-          <TabsList className="bg-muted/60">
-            <TabsTrigger value="all">Tous ({enrichedRecords.length})</TabsTrigger>
-            <TabsTrigger value="pending">En attente ({recordsByStatus.pending.length})</TabsTrigger>
-            <TabsTrigger value="partial">Partiels ({recordsByStatus.partial.length})</TabsTrigger>
-            <TabsTrigger value="completed">Complétés ({recordsByStatus.completed.length})</TabsTrigger>
-            <TabsTrigger value="history">Historique</TabsTrigger>
+          <TabsList className="bg-muted/60 w-full justify-start overflow-x-auto whitespace-nowrap p-1 gap-1">
+            <TabsTrigger value="all" className="shrink-0 text-[11px] sm:text-sm">Tous ({enrichedRecords.length})</TabsTrigger>
+            <TabsTrigger value="pending" className="shrink-0 text-[11px] sm:text-sm">En attente ({recordsByStatus.pending.length})</TabsTrigger>
+            <TabsTrigger value="partial" className="shrink-0 text-[11px] sm:text-sm">Partiels ({recordsByStatus.partial.length})</TabsTrigger>
+            <TabsTrigger value="completed" className="shrink-0 text-[11px] sm:text-sm">Complétés ({recordsByStatus.completed.length})</TabsTrigger>
+            <TabsTrigger value="history" className="shrink-0 text-[11px] sm:text-sm">Historique</TabsTrigger>
           </TabsList>
 
           {["all", "pending", "partial", "completed"].map((tabValue) => (
@@ -636,10 +638,10 @@ export function PaymentTrackingManager({
                   >
                     <CardContent className="pt-6">
                       <div className="space-y-3">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 space-y-2">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                          <div className="flex-1 space-y-2 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="font-semibold">{record.client?.name || record.client?.email || "-"}</p>
+                              <p className="font-semibold break-words">{record.client?.name || record.client?.email || "-"}</p>
                               <Badge
                                 variant={
                                   record.status === "pending"
@@ -656,28 +658,29 @@ export function PaymentTrackingManager({
                                   : "Complété"}
                               </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground break-words">
                               {record.sub_product_id ? `Sous-produit: ${record.sub_product?.name}` : `Produit: ${record.product?.description}`}
                             </p>
                             {record.notes && (
-                              <p className="text-sm text-muted-foreground italic">Note: {record.notes}</p>
+                              <p className="text-sm text-muted-foreground italic break-words">Note: {record.notes}</p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
                             {record.status !== "completed" && (
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="h-9 flex-1 sm:flex-none"
                                 onClick={() => handleMarkAsCompleted(record)}
                               >
                                 Marquer payé
                               </Button>
                             )}
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
+                              className="h-9 w-9 sm:w-auto text-destructive hover:text-destructive shrink-0"
                               onClick={() => handleDeleteRecord(record.id)}
-                              className="text-destructive hover:text-destructive"
                             >
                               <Trash2 size={16} />
                             </Button>
@@ -686,18 +689,18 @@ export function PaymentTrackingManager({
 
                         <Separator />
 
-                        <div className="grid grid-cols-3 gap-4 text-sm">
-                          <div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-sm">
+                          <div className="min-w-0">
                             <p className="text-muted-foreground">Montant inscrit</p>
-                            <p className="font-semibold">{formatCurrency(record.amount_willing_to_pay)}</p>
+                            <p className="font-semibold break-all leading-tight">{formatCurrency(record.amount_willing_to_pay)}</p>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-muted-foreground">Montant versé</p>
-                            <p className="font-semibold text-green-600">{formatCurrency(record.amount_paid)}</p>
+                            <p className="font-semibold text-green-600 break-all leading-tight">{formatCurrency(record.amount_paid)}</p>
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-muted-foreground">Reste</p>
-                            <p className="font-semibold text-orange-600">
+                            <p className="font-semibold text-orange-600 break-all leading-tight">
                               {formatCurrency(Math.max(0, record.amount_willing_to_pay - record.amount_paid))}
                             </p>
                           </div>
@@ -748,22 +751,22 @@ export function PaymentTrackingManager({
                     return (
                       <div key={`history-${record.id}`} className="rounded-lg border p-3 bg-muted/20">
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
-                          <p className="font-medium text-sm">
+                          <p className="font-medium text-sm break-words">
                             {record.client?.name || record.client?.email || "Client"}
                           </p>
                           <span className="text-xs text-muted-foreground">
                             {record.created_at ? new Date(record.created_at).toLocaleString("fr-FR") : "-"}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">
+                        <p className="text-sm text-muted-foreground mb-2 break-words">
                           {record.sub_product_id
                             ? `Sous-produit: ${record.sub_product?.name || "-"}`
                             : `Produit: ${record.product?.description || "-"}`}
                         </p>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                          <p>Total: <span className="font-semibold">{formatCurrency(record.amount_willing_to_pay)}</span></p>
-                          <p>Versé: <span className="font-semibold text-green-700">{formatCurrency(record.amount_paid)}</span></p>
-                          <p>Reste: <span className="font-semibold text-orange-700">{formatCurrency(remainingAmount)}</span></p>
+                          <p className="break-all">Total: <span className="font-semibold">{formatCurrency(record.amount_willing_to_pay)}</span></p>
+                          <p className="break-all">Versé: <span className="font-semibold text-green-700">{formatCurrency(record.amount_paid)}</span></p>
+                          <p className="break-all">Reste: <span className="font-semibold text-orange-700">{formatCurrency(remainingAmount)}</span></p>
                         </div>
                         {record.notes && (
                           <p className="text-xs text-muted-foreground mt-2">{record.notes}</p>

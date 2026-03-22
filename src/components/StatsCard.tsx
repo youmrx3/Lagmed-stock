@@ -31,7 +31,7 @@ export function StatsCard({ title, value, icon: Icon, variant = "default" }: Sta
         </div>
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground truncate">{title}</p>
-          <p className="text-2xl font-extrabold tracking-tight mt-0.5">{value}</p>
+          <p className="text-xl sm:text-2xl font-extrabold tracking-tight leading-tight break-words mt-0.5">{value}</p>
         </div>
       </div>
     </div>
