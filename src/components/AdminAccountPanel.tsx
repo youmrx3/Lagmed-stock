@@ -18,8 +18,10 @@ export function AdminAccountPanel({ adminEmail, onSignOut }: AdminAccountPanelPr
   const [saving, setSaving] = useState(false);
 
   const handlePasswordUpdate = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      toast.error("Le mot de passe doit contenir au moins 6 caracteres");
+    const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{12,}$/;
+
+    if (!newPassword || !strongPassword.test(newPassword)) {
+      toast.error("Mot de passe faible: 12+ caracteres avec majuscule, minuscule, chiffre et symbole");
       return;
     }
 
@@ -66,7 +68,7 @@ export function AdminAccountPanel({ adminEmail, onSignOut }: AdminAccountPanelPr
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Au moins 6 caracteres"
+              placeholder="12+ caracteres, maj/min/chiffre/symbole"
             />
           </div>
           <div className="space-y-2">

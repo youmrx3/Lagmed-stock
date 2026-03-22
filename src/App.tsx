@@ -46,19 +46,26 @@ const App = () => {
 
   const adminAllowList = useMemo(() => {
     const raw = String(import.meta.env.VITE_ADMIN_EMAILS || "").trim();
-    if (!raw) return null;
     const emails = raw
       .split(",")
       .map((v) => v.trim().toLowerCase())
       .filter(Boolean);
-    return emails.length > 0 ? emails : null;
+    return emails;
+  }, []);
+
+  const adminAllowListConfigured = adminAllowList.length > 0;
+  const requireAdminAllowList = useMemo(() => {
+    const raw = String(import.meta.env.VITE_REQUIRE_ADMIN_ALLOWLIST ?? (import.meta.env.PROD ? "true" : "false"))
+      .trim()
+      .toLowerCase();
+    return raw === "true" || raw === "1" || raw === "yes";
   }, []);
 
   const isAllowedAdmin = useMemo(() => {
     if (!user?.email) return false;
-    if (!adminAllowList) return true;
+    if (!adminAllowListConfigured) return !requireAdminAllowList;
     return adminAllowList.includes(user.email.toLowerCase());
-  }, [user?.email, adminAllowList]);
+  }, [user?.email, adminAllowList, adminAllowListConfigured, requireAdminAllowList]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -96,7 +103,9 @@ const App = () => {
                     <div className="space-y-3">
                       <h1 className="text-xl font-bold">Acces refuse</h1>
                       <p className="text-muted-foreground">
-                        Cet utilisateur n'est pas dans la liste admin autorisee.
+                        {!adminAllowListConfigured && requireAdminAllowList
+                          ? "Configuration manquante: definissez VITE_ADMIN_EMAILS pour autoriser les comptes admin."
+                          : "Cet utilisateur n'est pas dans la liste admin autorisee."}
                       </p>
                     </div>
                   </div>

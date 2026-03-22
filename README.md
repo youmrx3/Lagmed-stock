@@ -135,3 +135,59 @@ Verify data after restore:
 
 Database backups do not include binary files in Supabase Storage buckets (images/documents).
 For full disaster recovery, also back up Supabase Storage objects on a schedule.
+
+## Security Hardening
+
+This project now includes baseline hardening for authentication, secrets, and CI checks.
+
+### 1. Admin access is fail-closed
+
+Admin UI access now requires `VITE_ADMIN_EMAILS` to be configured.
+If it is missing, all users are blocked from admin access by default.
+
+Example:
+
+```env
+VITE_ADMIN_EMAILS="admin@example.com,owner@example.com"
+```
+
+Optional control flag:
+
+```env
+VITE_REQUIRE_ADMIN_ALLOWLIST="true"
+```
+
+- `true`: strict mode (recommended for production)
+- `false`: if no allowlist is defined, authenticated users can access admin (useful for local development)
+
+### 2. Strong password policy for admin account updates
+
+Admin password updates now require:
+
+- At least 12 characters
+- One uppercase letter
+- One lowercase letter
+- One number
+- One symbol
+
+### 3. Environment files and secrets hygiene
+
+- `.env` and `.env.*` are ignored by git
+- Use `.env.example` as template
+- Never commit service role keys or raw database credentials
+
+### 4. Automated security checks in GitHub Actions
+
+Workflow file: [.github/workflows/security-checks.yml](.github/workflows/security-checks.yml)
+
+It runs:
+
+- Dependency audit (`npm audit --audit-level=high`)
+- Secret scan (gitleaks)
+
+Triggers:
+
+- Push to `main`/`master`
+- Pull requests
+- Weekly schedule
+- Manual run
