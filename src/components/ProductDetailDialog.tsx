@@ -53,7 +53,7 @@ export function ProductDetailDialog({
     if (price === null) return "-";
     return new Intl.NumberFormat("fr-DZ", {
       style: "currency",
-      currency: companyProfile.currency,
+      currency: item.price_currency || companyProfile.currency,
       minimumFractionDigits: 0,
     }).format(price);
   };
@@ -221,6 +221,7 @@ export function ProductDetailDialog({
             <h4 className="text-sm font-medium text-muted-foreground">Sous-produits</h4>
             <SubproductManager
               subproducts={item.sub_products || []}
+              currency={companyProfile.currency}
               onAdd={async (name, quantity, price) => {
                 await onAddSubProduct(item.id, name, quantity, price);
               }}

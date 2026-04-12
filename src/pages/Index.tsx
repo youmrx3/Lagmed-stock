@@ -562,6 +562,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
             <StockTable 
               items={advancedFilteredItems} 
               customFields={customFields}
+              currency={settings.currency}
               selectedIds={selectedItemIds}
               onSelectionChange={setSelectedItemIds}
               onEdit={handleEdit} 
@@ -694,6 +695,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
 
                   <SubproductManager
                     subproducts={selectedSubProductsProduct.sub_products || []}
+                    currency={settings.currency}
                     onAdd={async (name, quantity, price) => {
                       await addSubProduct(selectedSubProductsProduct.id, name, quantity, price);
                     }}
@@ -758,6 +760,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         item={editingItem}
+        currency={settings.currency}
         customFields={customFields}
         brands={brands}
         origins={origins}

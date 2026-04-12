@@ -110,6 +110,7 @@ export function useStock() {
       items = items.map(item => ({
         ...item,
         paid_amount: item.paid_amount || 0,
+        price_currency: item.price_currency || "DZD",
         image_url: item.product_images?.[0]?.image_url || item.image_url || null,
         client: clients.find(c => c.id === item.client_id) || null,
         brand: brands.find(b => b.id === item.brand_id) || null,
@@ -320,6 +321,7 @@ export function useStock() {
         quantity: item.quantity,
         reference: item.reference || "",
         price_ht: item.price_ht,
+        price_currency: item.price_currency || "DZD",
         paid_amount: item.paid_amount || 0,
         client_id: item.client_id || null,
         brand_id: item.brand_id || null,
@@ -379,6 +381,7 @@ export function useStock() {
         quantity: updates.quantity,
         reference: updates.reference,
         price_ht: updates.price_ht,
+        price_currency: updates.price_currency,
         paid_amount: updates.paid_amount,
         client_id: updates.client_id,
         brand_id: updates.brand_id,

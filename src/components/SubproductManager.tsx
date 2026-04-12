@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 interface SubproductManagerProps {
   subproducts: SubProduct[];
+  currency?: string;
   onAdd: (name: string, quantity: number, price: number) => Promise<void>;
   onUpdate?: (id: string, quantity: number) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -18,6 +19,7 @@ interface SubproductManagerProps {
 
 export function SubproductManager({
   subproducts,
+  currency = "DZD",
   onAdd,
   onUpdate,
   onDelete,
@@ -32,6 +34,13 @@ export function SubproductManager({
   const [adding, setAdding] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("fr-DZ", {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 0,
+    }).format(value);
 
   const handleAdd = async () => {
     if (!name.trim()) {
@@ -155,7 +164,7 @@ export function SubproductManager({
               </div>
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label htmlFor="sp-price">Prix unitaire (DA)</Label>
+                  <Label htmlFor="sp-price">Prix unitaire ({currency})</Label>
                   <Input
                     id="sp-price"
                     type="number"
@@ -239,7 +248,7 @@ export function SubproductManager({
                     <div className="flex-1">
                       <p className="font-medium">{sp.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {sp.quantity} × {(sp.price || 0).toLocaleString("fr-DZ", { style: "currency", currency: "DZD" })} = {((sp.price || 0) * sp.quantity).toLocaleString("fr-DZ", { style: "currency", currency: "DZD" })}
+                        {sp.quantity} × {formatCurrency(sp.price || 0)} = {formatCurrency((sp.price || 0) * sp.quantity)}
                       </p>
                     </div>
                     <Badge variant="outline" className="ml-2">

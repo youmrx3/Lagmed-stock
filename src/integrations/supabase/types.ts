@@ -227,6 +227,7 @@ export type Database = {
           origin_id: string | null
           paid_amount: number
           price_ht: number | null
+          price_currency: string
           quantity: number
           reference: string | null
           remaining: number
@@ -245,6 +246,7 @@ export type Database = {
           origin_id?: string | null
           paid_amount?: number
           price_ht?: number | null
+          price_currency?: string
           quantity?: number
           reference?: string | null
           remaining?: number
@@ -263,6 +265,7 @@ export type Database = {
           origin_id?: string | null
           paid_amount?: number
           price_ht?: number | null
+          price_currency?: string
           quantity?: number
           reference?: string | null
           remaining?: number

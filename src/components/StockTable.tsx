@@ -16,6 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface StockTableProps {
   items: StockItem[];
   customFields: CustomField[];
+  currency: string;
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
   onEdit: (item: StockItem) => void;
@@ -30,14 +31,14 @@ function getStockStatus(remaining: number, quantity: number) {
   return { label: "En stock", variant: "success" as const, dot: "bg-success" };
 }
 
-export function StockTable({ items, customFields, selectedIds, onSelectionChange, onEdit, onDelete, onViewDetail, onViewSubProducts }: StockTableProps) {
+export function StockTable({ items, customFields, currency, selectedIds, onSelectionChange, onEdit, onDelete, onViewDetail, onViewSubProducts }: StockTableProps) {
   const isMobile = useIsMobile();
 
-  const formatPrice = (price: number | null) => {
+  const formatPrice = (price: number | null, priceCurrency?: string | null) => {
     if (price === null) return "—";
     return new Intl.NumberFormat("fr-DZ", {
       style: "currency",
-      currency: "DZD",
+      currency: priceCurrency || currency,
       minimumFractionDigits: 0,
     }).format(price);
   };
@@ -136,7 +137,7 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
 
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Prix HT</span>
-                    <span className="font-semibold">{formatPrice(item.price_ht)}</span>
+                    <span className="font-semibold">{formatPrice(item.price_ht, item.price_currency)}</span>
                   </div>
 
                   <div className="flex items-center justify-between text-xs">
@@ -262,7 +263,7 @@ export function StockTable({ items, customFields, selectedIds, onSelectionChange
                     )}
                   </TableCell>
                   <TableCell className="text-center font-medium text-sm tabular-nums">{item.remaining}</TableCell>
-                  <TableCell className="text-right text-sm tabular-nums">{formatPrice(item.price_ht)}</TableCell>
+                  <TableCell className="text-right text-sm tabular-nums">{formatPrice(item.price_ht, item.price_currency)}</TableCell>
                   <TableCell className="text-sm">{item.fournisseur?.name || <span className="text-muted-foreground/50">—</span>}</TableCell>
                   <TableCell className="text-sm">
                     <div className="flex items-center gap-2">

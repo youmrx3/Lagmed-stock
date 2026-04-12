@@ -66,8 +66,7 @@ export function useSiteSettings() {
     try {
       const { error } = await supabase
         .from("site_settings")
-        .update({ value })
-        .eq("key", key);
+        .upsert({ key, value }, { onConflict: "key" });
 
       if (error) throw error;
       await fetchSettings();
