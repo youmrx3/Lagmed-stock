@@ -81,7 +81,7 @@ export function StockDialog({
     quantity: 0,
     reference: "",
     price_ht: "",
-    price_currency: "DZD" as "DZD" | "USD",
+    price_currency: "DZD" as "DZD",
     paid_amount: "0",
     reserved: 0,
     notes: "",
@@ -106,7 +106,7 @@ export function StockDialog({
         quantity: item.quantity,
         reference: item.reference || "",
         price_ht: item.price_ht?.toString() || "",
-        price_currency: (item.price_currency as "DZD" | "USD") || "DZD",
+        price_currency: "DZD",
         paid_amount: (item.paid_amount || 0).toString(),
         reserved: item.reserved,
         notes: item.notes || "",
@@ -197,7 +197,7 @@ export function StockDialog({
       quantity: formData.quantity,
       reference: formData.reference,
       price_ht: formData.price_ht ? parseFloat(formData.price_ht) : null,
-      price_currency: formData.price_currency,
+      price_currency: "DZD",
       paid_amount: formData.paid_amount ? parseFloat(formData.paid_amount) : 0,
       reserved: formData.reserved,
       remaining: formData.quantity - formData.reserved,
@@ -431,20 +431,7 @@ export function StockDialog({
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Devise Prix HT</Label>
-              <Select
-                value={formData.price_currency}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, price_currency: value as "DZD" | "USD" }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DZD">DZD</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input value="DZD" readOnly />
             </div>
           </div>
 

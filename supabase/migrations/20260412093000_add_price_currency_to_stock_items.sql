@@ -10,7 +10,7 @@ begin
   ) then
     alter table public.stock_items
     add constraint stock_items_price_currency_check
-    check (price_currency in ('DZD', 'USD'));
+    check (price_currency = 'DZD');
   end if;
 end $$;
 

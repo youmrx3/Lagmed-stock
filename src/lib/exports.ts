@@ -1,7 +1,6 @@
 import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import { AlignmentType, Document, HeadingLevel, Packer, Paragraph, TextRun, Table, TableCell, TableRow, WidthType, BorderStyle } from "docx";
-import * as XLSX from "xlsx";
 import ExcelJS from "exceljs";
 import { StockItem } from "@/types/stock";
 
@@ -66,14 +65,37 @@ function productToRecord(item: StockItem, currency: string) {
   };
 }
 
-export function exportProductsToExcel(items: StockItem[], currency: string) {
+export async function exportProductsToExcel(items: StockItem[], currency: string) {
   const data = items.map((item) => productToRecord(item, currency));
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Produits");
 
-  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-  const blob = new Blob([excelBuffer], {
+  const workbook = new ExcelJS.Workbook();
+  const sheet = workbook.addWorksheet("Produits");
+
+  sheet.columns = [
+    { header: "Numero", key: "Numero", width: 10 },
+    { header: "Description", key: "Description", width: 32 },
+    { header: "Reference", key: "Reference", width: 20 },
+    { header: "Quantite", key: "Quantite", width: 12 },
+    { header: "Reserve", key: "Reserve", width: 12 },
+    { header: "Restant", key: "Restant", width: 12 },
+    { header: "Prix HT", key: "PrixHT", width: 14 },
+    { header: "Total", key: "Total", width: 14 },
+    { header: "Versement", key: "Versement", width: 14 },
+    { header: "Reste a payer", key: "ResteAPayer", width: 16 },
+    { header: "Client Nom", key: "ClientNom", width: 24 },
+    { header: "Client Email", key: "ClientEmail", width: 28 },
+    { header: "Marque", key: "Marque", width: 18 },
+    { header: "Origine", key: "Origine", width: 18 },
+    { header: "Notes", key: "Notes", width: 36 },
+    { header: "Devise", key: "Devise", width: 10 },
+  ];
+
+  data.forEach((row) => sheet.addRow(row));
+  sheet.getRow(1).font = { bold: true };
+  sheet.views = [{ state: "frozen", ySplit: 1 }];
+
+  const excelBuffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([excelBuffer as ArrayBuffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
   });
 

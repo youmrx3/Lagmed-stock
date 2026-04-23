@@ -3,13 +3,6 @@ import { SiteSettings } from "@/hooks/useSiteSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { uploadProductImage } from "@/lib/storage";
 import { ImagePlus, Loader2, X, Building2, Globe } from "lucide-react";
 import { toast } from "sonner";
@@ -28,7 +21,6 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
   const [companyEmail, setCompanyEmail] = useState(settings.company_email);
   const [companyPhone, setCompanyPhone] = useState(settings.company_phone);
   const [lowStockThreshold, setLowStockThreshold] = useState(settings.low_stock_threshold);
-  const [currency, setCurrency] = useState(settings.currency || "DZD");
 
   useEffect(() => {
     setCompanyName(settings.company_name);
@@ -37,7 +29,6 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
     setCompanyEmail(settings.company_email);
     setCompanyPhone(settings.company_phone);
     setLowStockThreshold(settings.low_stock_threshold);
-    setCurrency(settings.currency || "DZD");
   }, [settings]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,7 +62,6 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
 
   const handleSaveStockSettings = async () => {
     await onUpdate("low_stock_threshold", lowStockThreshold);
-    await onUpdate("currency", currency);
   };
 
   return (
@@ -186,7 +176,7 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
           </div>
         </div>
         <div className="p-4 sm:p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Seuil de stock bas</Label>
               <Input
@@ -197,21 +187,6 @@ export function SiteSettingsPanel({ settings, onUpdate }: SiteSettingsPanelProps
               />
               <p className="text-xs text-muted-foreground">
                 Alerte quand le stock restant est ≤ cette valeur
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Devise des prix</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choisir la devise" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="DZD">Dinar Algerien (DZD)</SelectItem>
-                  <SelectItem value="USD">Dollar Americain (USD)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Cette devise est utilisee pour l'affichage de tous les montants dans l'application.
               </p>
             </div>
           </div>

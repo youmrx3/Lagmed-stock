@@ -50,7 +50,6 @@ import {
   Truck,
   TrendingUp,
   Wallet,
-  CircleDollarSign,
   ChevronDown,
   FileText,
   FileJson2,
@@ -77,6 +76,8 @@ interface IndexProps {
   adminEmail?: string;
   onSignOut?: () => Promise<void>;
 }
+
+const APP_CURRENCY = "DZD";
 
 const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
   const isMobile = useIsMobile();
@@ -175,11 +176,18 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("fr-DZ", {
       style: "currency",
-      currency: settings.currency,
+      currency: APP_CURRENCY,
       minimumFractionDigits: 0,
     }).format(value);
 
-  const heroTotalValue = allItems.reduce((sum, item) => sum + (item.price_ht || 0) * item.quantity, 0);
+  const heroTotalValue = allItems.reduce((sum, item) => {
+    const productValue = (item.price_ht || 0) * item.quantity;
+    const subProductsValue = (item.sub_products || []).reduce(
+      (subSum, subProduct) => subSum + (subProduct.price || 0) * subProduct.quantity,
+      0
+    );
+    return sum + productValue + subProductsValue;
+  }, 0);
   const heroTotalTracked = paymentTrackings.reduce((sum, record) => sum + (record.amount_willing_to_pay || 0), 0);
   const heroTotalPaid = paymentTrackings.reduce((sum, record) => sum + (record.amount_paid || 0), 0);
   const heroTotalDue = Math.max(0, heroTotalTracked - heroTotalPaid);
@@ -322,18 +330,18 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => exportProductsToExcel(allItems, settings.currency)}>
+                  <DropdownMenuItem onClick={() => exportProductsToExcel(allItems, APP_CURRENCY)}>
                     <FileJson2 className="h-4 w-4 mr-2" />
                     <span>Excel Basique</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => exportProductsToExcelDetailed(allItems, settings.currency, {
+                  <DropdownMenuItem onClick={() => exportProductsToExcelDetailed(allItems, APP_CURRENCY, {
                     company_name: settings.company_name,
                     company_subtitle: settings.company_subtitle,
                     company_address: settings.company_address,
                     company_email: settings.company_email,
                     company_phone: settings.company_phone,
                     logo_url: settings.logo_url,
-                    currency: settings.currency,
+                    currency: APP_CURRENCY,
                   })}>
                     <FileJson2 className="h-4 w-4 mr-2" />
                     <span>Excel Détaillé (Avec Images)</span>
@@ -346,7 +354,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
                     company_email: settings.company_email,
                     company_phone: settings.company_phone,
                     logo_url: settings.logo_url,
-                    currency: settings.currency,
+                    currency: APP_CURRENCY,
                   }, "Catalogue de Produits")}>
                     <BookOpen className="h-4 w-4 mr-2" />
                     <span>PDF Catalogue</span>
@@ -391,7 +399,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
             <div className="group relative overflow-hidden rounded-xl border bg-card/90 backdrop-blur-sm p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                  <CircleDollarSign className="h-5 w-5 text-warning" />
+                  <AlertTriangle className="h-5 w-5 text-warning" />
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">Reste Global à Payer (Suivi)</p>
@@ -562,7 +570,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
             <StockTable 
               items={advancedFilteredItems} 
               customFields={customFields}
-              currency={settings.currency}
+              currency={APP_CURRENCY}
               selectedIds={selectedItemIds}
               onSelectionChange={setSelectedItemIds}
               onEdit={handleEdit} 
@@ -585,7 +593,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
               items={allItems}
               clients={clients}
               paymentTrackings={paymentTrackings}
-              currency={settings.currency}
+              currency={APP_CURRENCY}
             />
           </TabsContent>
 
@@ -594,7 +602,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
               clients={clients}
               items={allItems}
               paymentTrackings={paymentTrackings}
-              currency={settings.currency}
+              currency={APP_CURRENCY}
               onAdd={addClient}
               onUpdate={updateClient}
               onDelete={deleteClient}
@@ -605,7 +613,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
             <PaymentTrackingManager
               items={allItems}
               clients={clients}
-              currency={settings.currency}
+              currency={APP_CURRENCY}
               paymentRecords={paymentTrackings}
               onAddPayment={addPaymentTracking}
               onUpdatePayment={updatePaymentTracking}
@@ -695,7 +703,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
 
                   <SubproductManager
                     subproducts={selectedSubProductsProduct.sub_products || []}
-                    currency={settings.currency}
+                    currency={APP_CURRENCY}
                     onAdd={async (name, quantity, price) => {
                       await addSubProduct(selectedSubProductsProduct.id, name, quantity, price);
                     }}
@@ -760,7 +768,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         item={editingItem}
-        currency={settings.currency}
+        currency={APP_CURRENCY}
         customFields={customFields}
         brands={brands}
         origins={origins}
@@ -830,7 +838,7 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
           company_email: settings.company_email,
           company_phone: settings.company_phone,
           logo_url: settings.logo_url,
-          currency: settings.currency,
+          currency: APP_CURRENCY,
         }}
         onAddSubProduct={addSubProduct}
         onUpdateSubProduct={updateSubProduct}

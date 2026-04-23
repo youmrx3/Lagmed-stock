@@ -34,6 +34,13 @@ export function useStock() {
     return String((error as { message?: string }).message || "Erreur inconnue");
   };
 
+  const extractMissingColumnName = (error: unknown): string | null => {
+    if (!error || typeof error !== "object") return null;
+    const message = String((error as { message?: string }).message || "");
+    const match = message.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+does\s+not\s+exist/i);
+    return match?.[1] || null;
+  };
+
   // Fetch stock items
   const fetchItems = useCallback(async () => {
     try {
@@ -73,38 +80,41 @@ export function useStock() {
       }));
 
       // Fetch relationships separately
-      const clientIds = [...new Set(items.map(i => i.client_id).filter(Boolean))];
-      const brandIds = [...new Set(items.map(i => i.brand_id).filter(Boolean))];
-      const originIds = [...new Set(items.map(i => i.origin_id).filter(Boolean))];
-      const fournisseurIds = [...new Set(items.map(i => i.fournisseur_id).filter(Boolean))];
-      const categoryIds = [...new Set(items.map(i => i.category_id).filter(Boolean))];
+      const asId = (value: unknown) => (typeof value === "string" && value.trim() ? value : null);
+      const clientIds = [...new Set(items.map(i => asId(i.client_id)).filter(Boolean) as string[])];
+      const brandIds = [...new Set(items.map(i => asId(i.brand_id)).filter(Boolean) as string[])];
+      const originIds = [...new Set(items.map(i => asId(i.origin_id)).filter(Boolean) as string[])];
+      const fournisseurIds = [...new Set(items.map(i => asId(i.fournisseur_id)).filter(Boolean) as string[])];
+      const categoryIds = [...new Set(items.map(i => asId(i.category_id)).filter(Boolean) as string[])];
 
-      let clients: any[] = [];
-      let brands: any[] = [];
-      let origins: any[] = [];
-      let fournisseurs: any[] = [];
-      let categories: any[] = [];
+      const fetchRelatedRows = async (table: "clients" | "brands" | "origins" | "fournisseurs" | "categories", ids: string[]) => {
+        if (ids.length === 0) return [] as any[];
 
-      if (clientIds.length > 0) {
-        const { data: d } = await supabase.from("clients").select("*").in("id", clientIds);
-        clients = d || [];
-      }
-      if (brandIds.length > 0) {
-        const { data: d } = await supabase.from("brands").select("*").in("id", brandIds);
-        brands = d || [];
-      }
-      if (originIds.length > 0) {
-        const { data: d } = await supabase.from("origins").select("*").in("id", originIds);
-        origins = d || [];
-      }
-      if (fournisseurIds.length > 0) {
-        const { data: d } = await supabase.from("fournisseurs").select("*").in("id", fournisseurIds);
-        fournisseurs = d || [];
-      }
-      if (categoryIds.length > 0) {
-        const { data: d } = await supabase.from("categories").select("*").in("id", categoryIds);
-        categories = d || [];
-      }
+        const byIds = await supabase.from(table).select("*").in("id", ids);
+        if (!byIds.error) {
+          return byIds.data || [];
+        }
+
+        console.error(`Error fetching ${table} by ids:`, byIds.error);
+
+        // Fallback to full table scan when id-filter query fails (schema drift / API edge-cases).
+        const fallback = await supabase.from(table).select("*");
+        if (fallback.error) {
+          console.error(`Error fetching ${table} fallback:`, fallback.error);
+          return [] as any[];
+        }
+
+        const idSet = new Set(ids);
+        return (fallback.data || []).filter((row: any) => idSet.has(String(row.id)));
+      };
+
+      const [clients, brands, origins, fournisseurs, categories] = await Promise.all([
+        fetchRelatedRows("clients", clientIds),
+        fetchRelatedRows("brands", brandIds),
+        fetchRelatedRows("origins", originIds),
+        fetchRelatedRows("fournisseurs", fournisseurIds),
+        fetchRelatedRows("categories", categoryIds),
+      ]);
 
       // Attach relationships
       items = items.map(item => ({
@@ -112,11 +122,11 @@ export function useStock() {
         paid_amount: item.paid_amount || 0,
         price_currency: item.price_currency || "DZD",
         image_url: item.product_images?.[0]?.image_url || item.image_url || null,
-        client: clients.find(c => c.id === item.client_id) || null,
-        brand: brands.find(b => b.id === item.brand_id) || null,
-        origin: origins.find(o => o.id === item.origin_id) || null,
-        fournisseur: fournisseurs.find(f => f.id === item.fournisseur_id) || null,
-        category: categories.find(c => c.id === item.category_id) || null,
+        client: clients.find(c => String(c.id) === String(item.client_id || "")) || null,
+        brand: brands.find(b => String(b.id) === String(item.brand_id || "")) || null,
+        origin: origins.find(o => String(o.id) === String(item.origin_id || "")) || null,
+        fournisseur: fournisseurs.find(f => String(f.id) === String(item.fournisseur_id || "")) || null,
+        category: categories.find(c => String(c.id) === String(item.category_id || "")) || null,
         custom_field_values: item.custom_field_values,
         product_images: item.product_images,
         sub_products: item.sub_products,
@@ -343,25 +353,33 @@ export function useStock() {
       let inserted = data;
 
       if (error) {
-        if (!isMissingRelationError(error)) throw error;
-        const { data: legacyInserted, error: legacyError } = await supabase
-          .from("stock_items")
-          .insert({
-            number: item.number,
-            description: item.description,
-            quantity: item.quantity,
-            reference: item.reference || "",
-            price_ht: item.price_ht,
-            reserved: item.reserved,
-            remaining: item.remaining,
-            notes: item.notes || "",
-            image_url: item.image_url,
-          })
-          .select()
-          .single();
+        let retryError: unknown = error;
+        let retryPayload: Record<string, unknown> = { ...insertPayload };
 
-        if (legacyError) throw legacyError;
-        inserted = legacyInserted;
+        // Retry by removing only the specific missing columns instead of dropping all relation fields.
+        for (let attempt = 0; attempt < 8 && retryError; attempt++) {
+          const missingColumn = extractMissingColumnName(retryError);
+          if (!missingColumn || !(missingColumn in retryPayload)) {
+            break;
+          }
+
+          delete retryPayload[missingColumn];
+          const retryResult = await supabase
+            .from("stock_items")
+            .insert(retryPayload)
+            .select()
+            .single();
+
+          if (!retryResult.error) {
+            inserted = retryResult.data;
+            retryError = null;
+            break;
+          }
+
+          retryError = retryResult.error;
+        }
+
+        if (retryError) throw retryError;
       }
       await Promise.all([fetchItems(), fetchPaymentTrackings()]);
       toast.success("Produit ajouté avec succès");
@@ -381,7 +399,7 @@ export function useStock() {
         quantity: updates.quantity,
         reference: updates.reference,
         price_ht: updates.price_ht,
-        price_currency: updates.price_currency,
+        price_currency: updates.price_currency || "DZD",
         paid_amount: updates.paid_amount,
         client_id: updates.client_id,
         brand_id: updates.brand_id,
@@ -400,23 +418,31 @@ export function useStock() {
         .eq("id", id);
 
       if (error) {
-        if (!isMissingRelationError(error)) throw error;
-        const { error: legacyError } = await supabase
-          .from("stock_items")
-          .update({
-            number: updates.number,
-            description: updates.description,
-            quantity: updates.quantity,
-            reference: updates.reference,
-            price_ht: updates.price_ht,
-            reserved: updates.reserved,
-            remaining: updates.remaining,
-            notes: updates.notes,
-            image_url: updates.image_url,
-          })
-          .eq("id", id);
+        let retryError: unknown = error;
+        let retryPayload: Record<string, unknown> = { ...payload };
 
-        if (legacyError) throw legacyError;
+        // Retry by removing only missing columns; keep relation fields whenever schema supports them.
+        for (let attempt = 0; attempt < 8 && retryError; attempt++) {
+          const missingColumn = extractMissingColumnName(retryError);
+          if (!missingColumn || !(missingColumn in retryPayload)) {
+            break;
+          }
+
+          delete retryPayload[missingColumn];
+          const retryResult = await supabase
+            .from("stock_items")
+            .update(retryPayload)
+            .eq("id", id);
+
+          if (!retryResult.error) {
+            retryError = null;
+            break;
+          }
+
+          retryError = retryResult.error;
+        }
+
+        if (retryError) throw retryError;
       }
       await Promise.all([fetchItems(), fetchPaymentTrackings()]);
       toast.success("Produit mis à jour");
@@ -934,7 +960,14 @@ export function useStock() {
     const outOfStock = items.filter((item) => item.remaining === 0).length;
     const lowStock = items.filter((item) => item.remaining > 0 && item.remaining <= 5).length;
     const inStock = items.filter((item) => item.remaining > 5).length;
-    const totalValue = items.reduce((sum, item) => sum + (item.price_ht || 0) * item.quantity, 0);
+    const totalValue = items.reduce((sum, item) => {
+      const productValue = (item.price_ht || 0) * item.quantity;
+      const subProductsValue = (item.sub_products || []).reduce(
+        (subSum, subProduct) => subSum + (subProduct.price || 0) * subProduct.quantity,
+        0
+      );
+      return sum + productValue + subProductsValue;
+    }, 0);
 
     // Category breakdown based on actual categories
     const categoryCounts: Record<string, number> = {};

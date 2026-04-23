@@ -53,7 +53,7 @@ export function ProductDetailDialog({
     if (price === null) return "-";
     return new Intl.NumberFormat("fr-DZ", {
       style: "currency",
-      currency: item.price_currency || companyProfile.currency,
+      currency: companyProfile.currency,
       minimumFractionDigits: 0,
     }).format(price);
   };

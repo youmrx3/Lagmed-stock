@@ -24,6 +24,8 @@ const defaults: SiteSettings = {
   currency: "DZD",
 };
 
+const APP_CURRENCY = "DZD";
+
 export function useSiteSettings() {
   const [settings, setSettings] = useState<SiteSettings>(defaults);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export function useSiteSettings() {
         company_email: map.company_email || defaults.company_email,
         company_phone: map.company_phone || defaults.company_phone,
         low_stock_threshold: map.low_stock_threshold || defaults.low_stock_threshold,
-        currency: map.currency || defaults.currency,
+        currency: APP_CURRENCY,
       });
     } catch (error) {
       console.error("Error fetching settings:", error);
