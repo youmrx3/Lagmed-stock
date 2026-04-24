@@ -1000,6 +1000,73 @@ export function useStock() {
     };
   }, [items]);
 
+  const parseTrackedProductQty = (notes?: string | null) => {
+    const match = notes?.match(/qt[eé]\s*produit\s*:\s*(\d+)/i);
+    const qty = match ? parseInt(match[1], 10) : 1;
+    return Number.isFinite(qty) && qty > 0 ? qty : 1;
+  };
+
+  const parseTrackedSubProductQty = (notes?: string | null) => {
+    const match = notes?.match(/qt[eé]\s*sous[-\s]*produit\s*:\s*(\d+)/i);
+    const qty = match ? parseInt(match[1], 10) : 1;
+    return Number.isFinite(qty) && qty > 0 ? qty : 1;
+  };
+
+  const applyStockDeductionForPayment = useCallback(async (record: {
+    product_id?: string | null;
+    sub_product_id?: string | null;
+    notes?: string | null;
+  }) => {
+    if (record.product_id) {
+      const productQty = parseTrackedProductQty(record.notes);
+      const { data: product, error: fetchProductError } = await supabase
+        .from("stock_items")
+        .select("id, quantity, reserved")
+        .eq("id", record.product_id)
+        .single();
+
+      if (fetchProductError) throw fetchProductError;
+
+      const currentQuantity = Math.max(0, Number(product?.quantity || 0));
+      const currentReserved = Math.max(0, Number(product?.reserved || 0));
+      const nextQuantity = Math.max(0, currentQuantity - productQty);
+      const nextReserved = Math.min(currentReserved, nextQuantity);
+      const nextRemaining = Math.max(0, nextQuantity - nextReserved);
+
+      const { error: updateProductError } = await supabase
+        .from("stock_items")
+        .update({
+          quantity: nextQuantity,
+          reserved: nextReserved,
+          remaining: nextRemaining,
+        })
+        .eq("id", record.product_id);
+
+      if (updateProductError) throw updateProductError;
+    }
+
+    if (record.sub_product_id) {
+      const subQty = parseTrackedSubProductQty(record.notes);
+      const { data: subProduct, error: fetchSubProductError } = await supabase
+        .from("product_sub_products")
+        .select("id, quantity")
+        .eq("id", record.sub_product_id)
+        .single();
+
+      if (fetchSubProductError) throw fetchSubProductError;
+
+      const currentSubQty = Math.max(0, Number(subProduct?.quantity || 0));
+      const nextSubQty = Math.max(0, currentSubQty - subQty);
+
+      const { error: updateSubProductError } = await supabase
+        .from("product_sub_products")
+        .update({ quantity: nextSubQty })
+        .eq("id", record.sub_product_id);
+
+      if (updateSubProductError) throw updateSubProductError;
+    }
+  }, []);
+
   // Payment tracking management
   const addPaymentTracking = useCallback(async (
     clientId: string,
@@ -1027,17 +1094,31 @@ export function useStock() {
 
       const status = amountPaid === 0 ? "pending" : amountPaid >= amountWillingToPay ? "completed" : "partial";
 
-      const { error } = await supabase.from("payment_tracking").insert({
-        client_id: clientId,
-        product_id: productId,
-        sub_product_id: subProductId,
-        amount_willing_to_pay: amountWillingToPay,
-        amount_paid: amountPaid,
-        status,
-        notes,
-      });
+      const { data: insertedRecord, error } = await supabase
+        .from("payment_tracking")
+        .insert({
+          client_id: clientId,
+          product_id: productId,
+          sub_product_id: subProductId,
+          amount_willing_to_pay: amountWillingToPay,
+          amount_paid: amountPaid,
+          status,
+          notes,
+        })
+        .select("id, product_id, sub_product_id, notes, status")
+        .single();
 
       if (error) throw error;
+
+      if (status === "completed" && insertedRecord) {
+        try {
+          await applyStockDeductionForPayment(insertedRecord);
+        } catch (stockError) {
+          console.error("Error applying stock deduction on insert:", stockError);
+          toast.error("Paiement enregistré, mais la mise à jour du stock a échoué");
+        }
+      }
+
       toast.success("Suivi de paiement enregistré");
       await Promise.all([fetchItems(), fetchPaymentTrackings()]);
     } catch (error) {
@@ -1045,7 +1126,7 @@ export function useStock() {
       toast.error("Erreur lors de l'enregistrement du suivi");
       throw error;
     }
-  }, [fetchItems, fetchPaymentTrackings]);
+  }, [applyStockDeductionForPayment, fetchItems, fetchPaymentTrackings]);
 
   const updatePaymentTracking = useCallback(async (
     id: string,
@@ -1057,29 +1138,32 @@ export function useStock() {
     }
   ) => {
     try {
+      const { data: existingRecord, error: existingError } = await supabase
+        .from("payment_tracking")
+        .select("id, amount_willing_to_pay, amount_paid, status, product_id, sub_product_id, notes")
+        .eq("id", id)
+        .single();
+
+      if (existingError) throw existingError;
+
       let updateData: any = { ...updates };
 
       // Auto-calculate status based on amounts
-      if (updates.amount_paid !== undefined) {
-        const { data: record } = await supabase
-          .from("payment_tracking")
-          .select("amount_willing_to_pay")
-          .eq("id", id)
-          .single();
+      if (updates.amount_paid !== undefined || updates.amount_willing_to_pay !== undefined) {
+        const totalAmount = Number(updates.amount_willing_to_pay ?? existingRecord.amount_willing_to_pay ?? 0);
+        const paidAmount = Number(updates.amount_paid ?? existingRecord.amount_paid ?? 0);
 
-        if (record) {
-          const totalAmount = updates.amount_willing_to_pay || record.amount_willing_to_pay;
-          const paidAmount = updates.amount_paid;
-          
-          if (paidAmount === 0) {
-            updateData.status = "pending";
-          } else if (paidAmount >= totalAmount) {
-            updateData.status = "completed";
-          } else {
-            updateData.status = "partial";
-          }
+        if (paidAmount === 0) {
+          updateData.status = "pending";
+        } else if (paidAmount >= totalAmount) {
+          updateData.status = "completed";
+        } else {
+          updateData.status = "partial";
         }
       }
+
+      const wasCompleted = existingRecord.status === "completed";
+      const nextStatus = (updateData.status ?? existingRecord.status) as "pending" | "partial" | "completed";
 
       const { error } = await supabase
         .from("payment_tracking")
@@ -1087,6 +1171,20 @@ export function useStock() {
         .eq("id", id);
 
       if (error) throw error;
+
+      if (!wasCompleted && nextStatus === "completed") {
+        try {
+          await applyStockDeductionForPayment({
+            product_id: existingRecord.product_id,
+            sub_product_id: existingRecord.sub_product_id,
+            notes: updateData.notes ?? existingRecord.notes,
+          });
+        } catch (stockError) {
+          console.error("Error applying stock deduction on update:", stockError);
+          toast.error("Paiement mis à jour, mais la mise à jour du stock a échoué");
+        }
+      }
+
       toast.success("Suivi de paiement mis à jour");
       await Promise.all([fetchItems(), fetchPaymentTrackings()]);
     } catch (error) {
@@ -1094,7 +1192,7 @@ export function useStock() {
       toast.error("Erreur lors de la mise à jour");
       throw error;
     }
-  }, [fetchItems, fetchPaymentTrackings]);
+  }, [applyStockDeductionForPayment, fetchItems, fetchPaymentTrackings]);
 
   const deletePaymentTracking = useCallback(async (id: string) => {
     try {

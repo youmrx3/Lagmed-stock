@@ -41,7 +41,7 @@ function formatCurrency(value: number | null, currency: string) {
   }).format(value);
 }
 
-function productToRecord(item: StockItem, currency: string) {
+function productToRecord(item: StockItem) {
   const total = (item.price_ht || 0) * item.quantity;
   const remainingPayment = Math.max(0, total - (item.paid_amount || 0));
 
@@ -61,12 +61,11 @@ function productToRecord(item: StockItem, currency: string) {
     Marque: item.brand?.name || "",
     Origine: item.origin?.name || "",
     Notes: item.notes || "",
-    Devise: currency,
   };
 }
 
-export async function exportProductsToExcel(items: StockItem[], currency: string) {
-  const data = items.map((item) => productToRecord(item, currency));
+export async function exportProductsToExcel(items: StockItem[], _currency: string) {
+  const data = items.map((item) => productToRecord(item));
 
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("Produits");
@@ -87,7 +86,6 @@ export async function exportProductsToExcel(items: StockItem[], currency: string
     { header: "Marque", key: "Marque", width: 18 },
     { header: "Origine", key: "Origine", width: 18 },
     { header: "Notes", key: "Notes", width: 36 },
-    { header: "Devise", key: "Devise", width: 10 },
   ];
 
   data.forEach((row) => sheet.addRow(row));
@@ -276,7 +274,6 @@ export async function exportProductsToExcelDetailed(
     { champ: "Adresse", valeur: company.company_address },
     { champ: "Email", valeur: company.company_email },
     { champ: "Téléphone", valeur: company.company_phone },
-    { champ: "Devise", valeur: currency },
     { champ: "Logo URL", valeur: company.logo_url || "N/A" },
   ];
 

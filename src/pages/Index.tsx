@@ -235,6 +235,14 @@ const Index = ({ adminEmail = "admin", onSignOut }: IndexProps) => {
   }, [allItems, detailItem]);
 
   useEffect(() => {
+    if (!editingItem) return;
+    const refreshed = allItems.find((item) => item.id === editingItem.id);
+    if (refreshed) {
+      setEditingItem(refreshed);
+    }
+  }, [allItems, editingItem]);
+
+  useEffect(() => {
     if (activeTab !== "settings" || !settingsAnchor) return;
 
     const targetId = settingsAnchor === "categories" ? "settings-categories-section" : null;

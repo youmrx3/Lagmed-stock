@@ -71,6 +71,7 @@ export function StockDialog({
   const [images, setImages] = useState<string[]>([]);
   const [enableSubProducts, setEnableSubProducts] = useState(false);
   const [stagedSubProducts, setStagedSubProducts] = useState<LocalSubProduct[]>([]);
+  const [editSubProducts, setEditSubProducts] = useState<LocalSubProduct[]>([]);
   const [currentStep, setCurrentStep] = useState<"product" | "subproducts">("product");
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   const [createdProductLabel, setCreatedProductLabel] = useState<string>("");
@@ -120,6 +121,7 @@ export function StockDialog({
 
       const mappedImages = (item.product_images || []).map((image) => image.image_url);
       setImages(mappedImages.length > 0 ? mappedImages : item.image_url ? [item.image_url] : []);
+      setEditSubProducts((item.sub_products || []) as LocalSubProduct[]);
       
       // Set custom field values
       const values: Record<string, string> = {};
@@ -150,6 +152,7 @@ export function StockDialog({
       });
       setCustomFieldValues({});
       setImages([]);
+      setEditSubProducts([]);
       setEnableSubProducts(false);
       setStagedSubProducts([]);
     }
@@ -197,7 +200,7 @@ export function StockDialog({
       quantity: formData.quantity,
       reference: formData.reference,
       price_ht: formData.price_ht ? parseFloat(formData.price_ht) : null,
-      price_currency: "DZD",
+      price_currency: "DZD" as "DZD",
       paid_amount: formData.paid_amount ? parseFloat(formData.paid_amount) : 0,
       reserved: formData.reserved,
       remaining: formData.quantity - formData.reserved,
@@ -382,7 +385,7 @@ export function StockDialog({
             <Input
               id="description"
               value={formData.description}
-              onChange={(e) =>
+              onChange={(e) =>                        
                 setFormData({ ...formData, description: e.target.value })
               }
               placeholder="Nom du produit"
@@ -390,7 +393,7 @@ export function StockDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="quantity" className="text-xs">Quantité</Label>
               <Input
@@ -417,7 +420,7 @@ export function StockDialog({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="price_ht" className="text-xs">Prix HT ({currency})</Label>
+              <Label htmlFor="price_ht" className="text-xs">Prix HT</Label>
               <Input
                 id="price_ht"
                 type="number"
@@ -428,10 +431,6 @@ export function StockDialog({
                 placeholder="0"
                 min={0}
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Devise Prix HT</Label>
-              <Input value="DZD" readOnly />
             </div>
           </div>
 
@@ -532,13 +531,26 @@ export function StockDialog({
             <div className="space-y-3 rounded-lg border p-3">
               <Label className="text-xs">Sous-produits</Label>
               <SubproductManager
-                subproducts={item.sub_products || []}
+                subproducts={editSubProducts}
                 currency={currency}
                 onAdd={async (name, quantity, price) => {
                   await onAddSubProduct(item.id, name, quantity, price);
+                  setEditSubProducts((prev) => [
+                    ...prev,
+                    {
+                      id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                      parent_product_id: item.id,
+                      name,
+                      quantity,
+                      price,
+                    },
+                  ]);
                 }}
                 onDelete={async (id) => {
-                  await onDeleteSubProduct(id);
+                  if (!id.startsWith("local-")) {
+                    await onDeleteSubProduct(id);
+                  }
+                  setEditSubProducts((prev) => prev.filter((sp) => sp.id !== id));
                 }}
               />
             </div>
